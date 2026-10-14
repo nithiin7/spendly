@@ -1,5 +1,8 @@
 import { getDemoFinanceData } from "@/lib/demo-data";
-import { defaultCategoryRules } from "@/lib/categories";
+import {
+  defaultCategories,
+  defaultCategoryRules,
+} from "@/lib/categories";
 import { isFinanceData } from "@/lib/finance-utils";
 import type { FinanceData } from "@/types/finance";
 
@@ -68,4 +71,17 @@ export function resetFinanceData(): FinanceData {
   const demoData = getDemoFinanceData();
   saveFinanceData(demoData);
   return demoData;
+}
+
+export function clearFinanceData(): FinanceData {
+  const emptyData: FinanceData = {
+    categories: defaultCategories.map((category) => ({ ...category })),
+    rules: defaultCategoryRules.map((rule) => ({
+      ...rule,
+      keywords: [...rule.keywords],
+    })),
+    transactions: [],
+  };
+  saveFinanceData(emptyData);
+  return emptyData;
 }

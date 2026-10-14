@@ -12,6 +12,7 @@ import {
   updateCategoryRule,
 } from "@/lib/categorization";
 import {
+  clearFinanceData,
   loadFinanceData,
   resetFinanceData,
   saveFinanceData,
@@ -261,6 +262,24 @@ export function useFinanceData() {
     }
   }, []);
 
+  const clearAllData = useCallback((): boolean => {
+    try {
+      const data = clearFinanceData();
+      dataRef.current = data;
+      setState({ data, isLoading: false, error: null });
+      return true;
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error:
+          error instanceof Error
+            ? `Saved data could not be cleared: ${error.message}`
+            : "Saved data could not be cleared.",
+      }));
+      return false;
+    }
+  }, []);
+
   return {
     ...state,
     addTransaction,
@@ -272,5 +291,6 @@ export function useFinanceData() {
     editCategorizationRule,
     deleteCategorizationRule,
     resetDemoData,
+    clearAllData,
   };
 }

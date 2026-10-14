@@ -58,6 +58,11 @@ rate, category totals, transaction count, largest expense, and the expense
 comparison with the previous month. Amount calculations use paise; formatting
 is applied only when displaying values.
 
+The transaction list can export all saved transactions as a CSV file with
+ISO-formatted dates, decimal INR amounts, and labeled columns. **Clear all
+data** requires confirmation and clears transactions plus custom categories and
+rules while retaining the default categories and rules for a clean start.
+
 ## Automatic categorization
 
 Expense descriptions are normalized to lowercase, whitespace-separated words

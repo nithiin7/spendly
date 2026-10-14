@@ -330,6 +330,7 @@ export function FinanceDashboard() {
         onAddRule={finance.addCategorizationRule}
         onDelete={finance.deleteTransaction}
         onDeleteRule={finance.deleteCategorizationRule}
+        onClearAll={finance.clearAllData}
         onEditRule={finance.editCategorizationRule}
         onRenameCategory={finance.editCategory}
         onResetDemo={finance.resetDemoData}

@@ -309,3 +309,45 @@ export function formatTransactionAmount(
   const amount = formatRupees(amountPaise);
   return type === "income" ? `+${amount}` : `−${amount}`;
 }
+
+const transactionCsvHeaders = [
+  "Date (YYYY-MM-DD)",
+  "Type",
+  "Description",
+  "Category",
+  "Amount (INR)",
+  "Payment Method",
+  "Notes",
+  "Category Source",
+  "Created At",
+  "Updated At",
+];
+
+function escapeCsvValue(value: string): string {
+  const safeValue = /^[\t\r ]*[=+\-@]/.test(value) ? `'${value}` : value;
+  return `"${safeValue.replaceAll('"', '""')}"`;
+}
+
+export function createTransactionsCsv(
+  transactions: Transaction[],
+  categories: Category[],
+): string {
+  const categoryNames = new Map(
+    categories.map((category) => [category.id, category.name]),
+  );
+  const rows = transactions.map((transaction) => [
+    transaction.date,
+    transaction.type,
+    transaction.description,
+    categoryNames.get(transaction.categoryId) ?? "Uncategorized",
+    (transaction.amountPaise / 100).toFixed(2),
+    transaction.paymentMethod ?? "",
+    transaction.notes ?? "",
+    transaction.categorySource === "suggested" ? "Suggested" : "Confirmed",
+    transaction.createdAt,
+    transaction.updatedAt,
+  ]);
+  return [transactionCsvHeaders, ...rows]
+    .map((row) => row.map(escapeCsvValue).join(","))
+    .join("\r\n");
+}

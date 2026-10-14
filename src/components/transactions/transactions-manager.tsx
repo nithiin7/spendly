@@ -6,6 +6,7 @@ import {
   ArrowDownUp,
   ArrowUpRight,
   CalendarDays,
+  Download,
   Pencil,
   Plus,
   Search,
@@ -16,6 +17,7 @@ import {
 import { Modal } from "@/components/ui/modal";
 import { CategoryRulesManager } from "@/components/transactions/category-rules-manager";
 import {
+  createTransactionsCsv,
   filterAndSortTransactions,
   formatTransactionAmount,
 } from "@/lib/finance-utils";
@@ -42,11 +44,13 @@ type TransactionsManagerProps = {
   onEditRule: (ruleId: string, input: CategoryRuleInput) => boolean;
   onDeleteRule: (ruleId: string) => boolean;
   onResetDemo: () => boolean;
+  onClearAll: () => boolean;
 };
 
 type Confirmation =
   | { type: "delete"; transaction: Transaction }
   | { type: "reset" }
+  | { type: "clear" }
   | null;
 
 type TransactionSort =
@@ -84,6 +88,7 @@ export function TransactionsManager({
   onEditRule,
   onDeleteRule,
   onResetDemo,
+  onClearAll,
 }: TransactionsManagerProps) {
   const [query, setQuery] = useState("");
   const [month, setMonth] = useState("all");
@@ -139,9 +144,26 @@ export function TransactionsManager({
     const succeeded =
       confirmation.type === "delete"
         ? onDelete(confirmation.transaction.id)
-        : onResetDemo();
+        : confirmation.type === "reset"
+          ? onResetDemo()
+          : onClearAll();
     if (succeeded) setConfirmation(null);
     return succeeded;
+  }
+
+  function exportTransactions() {
+    const csv = createTransactionsCsv(transactions, categories);
+    const blob = new Blob([`\uFEFF${csv}`], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `spendly-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   return (
@@ -154,6 +176,8 @@ export function TransactionsManager({
         filters={{ query, month, type, sort }}
         months={months}
         onAdd={() => setEditing("new")}
+        onClearAll={() => setConfirmation({ type: "clear" })}
+        onExport={exportTransactions}
         onManageRules={() => setShowRules(true)}
         onDelete={(transaction) =>
           setConfirmation({ type: "delete", transaction })
@@ -216,6 +240,8 @@ type TransactionPanelProps = {
   };
   months: string[];
   onAdd: () => void;
+  onClearAll: () => void;
+  onExport: () => void;
   onManageRules: () => void;
   onDelete: (transaction: Transaction) => void;
   onEdit: (transaction: Transaction) => void;
@@ -237,6 +263,8 @@ function TransactionPanel({
   filters,
   months,
   onAdd,
+  onClearAll,
+  onExport,
   onManageRules,
   onDelete,
   onEdit,
@@ -274,6 +302,23 @@ function TransactionPanel({
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          <button
+            className="button-secondary"
+            disabled={transactions.length === 0}
+            onClick={onExport}
+            type="button"
+          >
+            <Download aria-hidden="true" className="size-4" />
+            Export CSV
+          </button>
+          <button
+            className="button-secondary text-red-700 hover:bg-red-50"
+            onClick={onClearAll}
+            type="button"
+          >
+            <Trash2 aria-hidden="true" className="size-4" />
+            Clear all data
+          </button>
           <button
             className="button-secondary"
             onClick={onManageRules}
@@ -538,6 +583,7 @@ function ConfirmationDialog({
   onConfirm: () => boolean;
 }) {
   const isReset = confirmation.type === "reset";
+  const isClear = confirmation.type === "clear";
   const [error, setError] = useState(false);
 
   return (
@@ -545,11 +591,19 @@ function ConfirmationDialog({
       description={
         isReset
           ? "This replaces your saved transactions and custom categories with the original sample data."
-          : `“${confirmation.transaction.description}” will be permanently removed from this device.`
+          : isClear
+            ? "This permanently removes all saved transactions and custom categories from this browser. Default categories and rules will remain so you can start fresh."
+            : `“${confirmation.transaction.description}” will be permanently removed from this device.`
       }
       onClose={onClose}
       size="small"
-      title={isReset ? "Reset sample data?" : "Delete transaction?"}
+      title={
+        isReset
+          ? "Reset sample data?"
+          : isClear
+            ? "Clear all saved data?"
+            : "Delete transaction?"
+      }
     >
       <div className="space-y-4 px-5 py-5 sm:px-6">
         {error && (
@@ -573,7 +627,7 @@ function ConfirmationDialog({
             ) : (
               <Trash2 aria-hidden="true" className="size-4" />
             )}
-            {isReset ? "Reset data" : "Delete"}
+            {isReset ? "Reset data" : isClear ? "Clear all data" : "Delete"}
           </button>
         </div>
       </div>

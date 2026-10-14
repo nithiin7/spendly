@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { defaultCategories } from "./categories.ts";
 import {
+  createTransactionsCsv,
+  filterAndSortTransactions,
   getMonthlyFinancialSummary,
   getPreviousMonthKey,
   getSpendingMonths,
+  parseRupeesToPaise,
 } from "./finance-utils.ts";
 import type { Transaction } from "../types/finance.ts";
 
@@ -106,4 +109,67 @@ test("generates a six-month trend ending at the selected month across year bound
     ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
   );
   assert.equal(getPreviousMonthKey("2026-01"), "2025-12");
+});
+
+test("search, month, type, category, and sorting filters compose correctly across years", () => {
+  const transactions = [
+    transaction("October rent", "expense", "2025-10-01", 5000),
+    transaction("October income", "income", "2026-10-01", 20000),
+    transaction("October groceries", "expense", "2026-10-15", 8000, "category-3"),
+  ];
+  const filtered = filterAndSortTransactions(transactions, {
+    query: "october",
+    month: "2026-10",
+    type: "expense",
+    categoryId: "category-3",
+    sort: "amount-desc",
+  });
+
+  assert.deepEqual(
+    filtered.map(({ id }) => id),
+    ["October groceries"],
+  );
+  assert.equal(
+    filterAndSortTransactions(transactions, {
+      query: "",
+      month: "2025-10",
+      type: "all",
+      categoryId: "",
+      sort: "date-desc",
+    }).length,
+    1,
+  );
+});
+
+test("CSV export has labeled ISO dates, exact INR amounts, quoted fields, and safe formulas", () => {
+  const csv = createTransactionsCsv(
+    [
+      {
+        ...transaction("csv", "expense", "2026-10-14", 12345),
+        description: 'Market, "fresh"',
+        paymentMethod: "UPI",
+        notes: "=HYPERLINK(\"https://example.com\")",
+        categorySource: "manual",
+      },
+    ],
+    defaultCategories,
+  );
+  const rows = csv.split("\r\n");
+
+  assert.equal(
+    rows[0],
+    '"Date (YYYY-MM-DD)","Type","Description","Category","Amount (INR)","Payment Method","Notes","Category Source","Created At","Updated At"',
+  );
+  assert.equal(
+    rows[1],
+    '"2026-10-14","expense","Market, ""fresh""","Rent","123.45","UPI","\'=HYPERLINK(""https://example.com"")","Confirmed","2026-10-14T12:00:00.000Z","2026-10-14T12:00:00.000Z"',
+  );
+});
+
+test("amount parsing rejects zero, negatives, malformed decimals, and unsafe values", () => {
+  assert.equal(parseRupeesToPaise("123.45"), 12345);
+  assert.equal(parseRupeesToPaise("0"), null);
+  assert.equal(parseRupeesToPaise("-1.00"), null);
+  assert.equal(parseRupeesToPaise("12.345"), null);
+  assert.equal(parseRupeesToPaise("90071992547410"), null);
 });
