@@ -1,0 +1,30 @@
+name: Bug report
+description: Report a reproducible problem in Spendly.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: Please remove personal financial information from screenshots, exports, and examples.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include the smallest set of steps that reproduces the issue.
+      placeholder: |
+        1. Open...
+        2. Select...
+        3. Observe...
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and operating system
+      placeholder: e.g. Firefox 130 on macOS 15

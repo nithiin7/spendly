@@ -1,93 +1,50 @@
+<div align="center">
+
 # Spendly
 
-Spendly is a personal finance dashboard built with the Next.js App Router,
-TypeScript, Tailwind CSS, and Lucide React. Add, edit, search, filter, sort, and
-remove income and expense transactions. Data is stored in the current browser
-using localStorage; no account or server sync is configured.
+### Your money, in perspective.
 
-## Getting started
+A private, browser-based dashboard for tracking income, expenses, and spending patterns.
+
+<a href="https://github.com/nithiin7/spendly"><img alt="GitHub repository" src="https://img.shields.io/badge/GitHub-nithiin7%2Fspendly-181717?logo=github"></a>
+<img alt="Next.js 16.4.0" src="https://img.shields.io/badge/Next.js-16.4.0-black?logo=nextdotjs">
+<img alt="React 19.3.0" src="https://img.shields.io/badge/React-19.3.0-149eca?logo=react">
+<img alt="Tailwind CSS 4.3.3" src="https://img.shields.io/badge/Tailwind_CSS-4.3.3-06b6d4?logo=tailwindcss">
+<img alt="TypeScript 5.9.3" src="https://img.shields.io/badge/TypeScript-5.9.3-3178c6?logo=typescript">
+
+</div>
+
+Spendly is a personal finance tracker built with Next.js, TypeScript, and Tailwind CSS. Manage transactions and categories, review monthly summaries and charts, and export your records as CSV. No account or server sync is configured.
+
+## Features
+
+- 💸 Add, edit, delete, search, filter, sort, and export income and expense transactions.
+- 🏷️ Organize transactions with custom categories and editable, rule-based suggestions.
+- 📊 Review monthly income, expenses, balance, savings rate, category totals, and six-month spending trends.
+- 🔒 Keep saved finance data in this browser using localStorage.
+- ↩️ Clear saved data or restore the included sample data, with confirmation.
+
+## Screenshot
+
+> **Screenshot placeholder:** No application screenshot is checked in yet. Replace this note with a real screenshot captured from the running app.
+
+## Technology
+
+Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS 4 · Lucide React
+
+## Run locally
+
+Requirements: Node.js 22.6.0 or newer and npm. The test script uses Node’s built-in TypeScript stripping.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). To check the project, run `npm run lint`, `npm test`, and `npm run build`.
 
-## Project structure
+## Data and privacy
 
-```text
-src/
-  app/
-    globals.css                 Design tokens and global styles
-    layout.tsx                  Root layout and page metadata
-    page.tsx                    Dashboard route composition
-  components/
-    dashboard/                  Summary cards and transaction-derived views
-    layout/                     Responsive app shell and navigation
-    transactions/               Transaction form and management list
-    ui/                         Accessible reusable dialog
-  hooks/
-    use-finance-data.ts          Client-side state and persistence actions
-  lib/
-    categories.ts               Default/custom category utilities
-    categorization.ts           Local rule matching and category suggestions
-    categorization.test.ts      Rule engine unit tests
-    finance-utils.test.ts       Monthly calculation unit tests
-    demo-data.ts                Sample finance data for first run/reset
-    finance-storage.ts          Validated localStorage repository
-    finance-utils.ts            INR formatting and finance calculations
-  types/
-    finance.ts                  Shared finance domain types
-```
+Spendly stores transaction, category, and rule data in the browser’s localStorage. The project does not configure an account, server-side storage, or synchronization. Browser storage is not encrypted or backed up by Spendly; anyone with access to your browser profile may be able to access it. CSV exports are downloaded to your device.
 
-Transaction amounts are persisted as integer paise. Saved data is loaded only
-in a client effect to keep browser APIs out of server rendering; if saved data
-is invalid or storage is unavailable, Spendly reports the problem instead of
-silently replacing it. The transaction panel includes an explicit confirmation
-before resetting to the sample dataset.
-
-## Monthly dashboard and income
-
-Income is recorded as an ordinary income transaction with a date, description,
-and positive amount; salary and other income use the same flow. Edit an existing
-income row to update it: edits replace that transaction by its ID instead of
-creating a second entry. Dashboard calculations use only the selected calendar
-month and year, keep income separate from expenses, and derive balance, savings
-rate, category totals, transaction count, largest expense, and the expense
-comparison with the previous month. Amount calculations use paise; formatting
-is applied only when displaying values.
-
-The transaction list can export all saved transactions as a CSV file with
-ISO-formatted dates, decimal INR amounts, and labeled columns. **Clear all
-data** requires confirmation and clears transactions plus custom categories and
-rules while retaining the default categories and rules for a clean start.
-
-## Automatic categorization
-
-Expense descriptions are normalized to lowercase, whitespace-separated words
-with punctuation removed, then compared locally against the rules in
-[`src/lib/categories.ts`](./src/lib/categories.ts). The highest-priority match
-wins; when priorities tie, the longer matching phrase wins. A description with
-no reliable match suggests the fallback `Other` category.
-
-Open **Categorization rules** above the transactions list to add, edit, or remove
-custom rules, or edit built-in rules. Enter comma-separated keywords/aliases
-and an integer priority from 0–1000. Matching category suggestions are marked
-as suggested; choosing a category manually marks it confirmed and future
-description edits will not replace it. Rule evaluation never sends descriptions
-outside the browser.
-
-## Next steps
-
-1. Add focused automated tests for validation and persistence edge cases.
-2. Add monthly budget settings and derive remaining-budget views.
-3. Consider a charting library if interactive chart requirements justify it.
-
-## Checks
-
-```bash
-npm run lint
-npm test
-npm run build
-```
+See [Contributing](./CONTRIBUTING.md) for how to get involved and [LICENSE](./LICENSE) for the project’s license.

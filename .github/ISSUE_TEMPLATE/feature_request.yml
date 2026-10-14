@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest a focused improvement to Spendly.
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What would you like to do?
+      description: Describe the user need or problem.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would a helpful solution look like?
+      description: Share the behavior or outcome you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: considerations
+    attributes:
+      label: Additional context
+      description: Optional context, examples, or privacy considerations.
