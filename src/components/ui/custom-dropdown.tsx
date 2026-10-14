@@ -10,6 +10,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
+import { motion } from "framer-motion";
 import { Check, ChevronDown } from "lucide-react";
 
 export type DropdownOption = {
@@ -237,7 +238,7 @@ export function CustomDropdown({
 
   const menu = isOpen && portalTarget
     ? createPortal(
-        <div
+        <motion.div
           aria-label="Options"
           className="fixed z-100 overflow-y-auto rounded-xl border border-border bg-white p-1.5 shadow-xl"
           id={listboxId}
@@ -247,12 +248,15 @@ export function CustomDropdown({
             ...menuStyle,
             visibility: menuStyle ? "visible" : "hidden",
           }}
+          initial={{ opacity: 0, scale: 0.98, y: 4 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.14, ease: "easeOut" }}
         >
           {options.map((option, index) => {
             const selected = option.value === value;
             const active = index === activeIndex;
             return (
-              <div
+              <motion.div
                 aria-disabled={option.disabled || undefined}
                 aria-selected={selected}
                 className={`flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
@@ -268,13 +272,14 @@ export function CustomDropdown({
                 onMouseEnter={() => setActiveIndex(index)}
                 role="option"
                 tabIndex={-1}
+                whileTap={option.disabled ? undefined : { scale: 0.99 }}
               >
                 <span>{option.label}</span>
                 {selected && <Check aria-hidden="true" className="size-4" />}
-              </div>
+              </motion.div>
             );
           })}
-        </div>,
+        </motion.div>,
         portalTarget,
       )
     : null;

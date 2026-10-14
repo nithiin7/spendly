@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { FinancePageState } from "@/components/finance/finance-page-state";
 import { FinanceBackupManager } from "@/components/backup/finance-backup-manager";
+import { PageEntrance } from "@/components/ui/page-entrance";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import {
   createMigrationRecordId,
@@ -66,6 +67,7 @@ export function SettingsPage() {
   };
 
   return (
+    <PageEntrance>
     <div className="space-y-7">
       <div>
         <h2 className="text-2xl font-semibold tracking-[-0.04em] text-ink">
@@ -206,5 +208,6 @@ export function SettingsPage() {
         </p>
       </section>
     </div>
+    </PageEntrance>
   );
 }

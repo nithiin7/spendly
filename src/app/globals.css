@@ -41,8 +41,21 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
-* {
-  -webkit-tap-highlight-color: transparent;
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:not(:disabled),
+  a[href],
+  [role="option"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 }
 
 @layer components {

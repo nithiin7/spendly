@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Pencil, Sparkles } from "lucide-react";
 import { FinancePageState } from "@/components/finance/finance-page-state";
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
+import { PageEntrance } from "@/components/ui/page-entrance";
 import { CategoryRulesManager } from "@/components/transactions/category-rules-manager";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import type { Category, TransactionType } from "@/types/finance";
@@ -49,6 +50,7 @@ export function CategoriesPage() {
   const { categories, rules } = finance.data;
 
   return (
+    <PageEntrance>
     <div className="space-y-7">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -200,5 +202,6 @@ export function CategoriesPage() {
         />
       )}
     </div>
+    </PageEntrance>
   );
 }

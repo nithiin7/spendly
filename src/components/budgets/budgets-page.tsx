@@ -13,6 +13,7 @@ import {
 import { FinancePageState } from "@/components/finance/finance-page-state";
 import { CalendarPicker } from "@/components/ui/calendar-picker";
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
+import { PageEntrance } from "@/components/ui/page-entrance";
 import { Modal } from "@/components/ui/modal";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import {
@@ -225,6 +226,7 @@ export function BudgetsPage() {
   }
 
   return (
+    <PageEntrance>
     <div className="space-y-7">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -684,6 +686,7 @@ export function BudgetsPage() {
         </Modal>
       )}
     </div>
+    </PageEntrance>
   );
 }
 

@@ -3,6 +3,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { CalendarPicker } from "@/components/ui/calendar-picker";
 import { FinancePageState } from "@/components/finance/finance-page-state";
+import { PageEntrance } from "@/components/ui/page-entrance";
 import { CategoryBreakdown } from "@/components/dashboard/category-breakdown";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
 import { useFinanceData } from "@/hooks/finance-data-provider";
@@ -69,6 +70,7 @@ export function InsightsPage() {
   ).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 
   return (
+    <PageEntrance>
     <div className="space-y-7">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -285,5 +287,6 @@ export function InsightsPage() {
         </div>
       </section>
     </div>
+    </PageEntrance>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -207,37 +208,48 @@ export function AppSidebar({
             <Menu aria-hidden="true" className="size-5" />
           )}
         </button>
-        {isOpen && (
-          <div className="fixed inset-0 z-40 md:hidden">
-            <button
-              aria-label="Close navigation menu"
-              className="absolute inset-0 bg-forest-950/35"
-              onClick={() => setIsOpen(false)}
-              type="button"
-            />
-            <aside
-              aria-label="Mobile navigation drawer"
-              className="relative h-full w-[min(82vw,320px)] bg-forest-950 px-5 py-6 text-white shadow-2xl"
-              id="mobile-navigation"
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              animate={{ opacity: 1 }}
+              className="fixed inset-0 z-40 md:hidden"
+              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
             >
-              <div className="mb-10 flex items-center justify-between">
-                <Brand />
-                <button
-                  aria-label="Close navigation menu"
-                  className="flex size-9 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-300"
-                  onClick={() => setIsOpen(false)}
-                  type="button"
-                >
-                  <X aria-hidden="true" className="size-5" />
-                </button>
-              </div>
-              <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
-                Workspace
-              </p>
-              <NavigationLinks onNavigate={() => setIsOpen(false)} />
-            </aside>
-          </div>
-        )}
+              <motion.button
+                aria-label="Close navigation menu"
+                className="absolute inset-0 bg-forest-950/35"
+                onClick={() => setIsOpen(false)}
+                type="button"
+              />
+              <motion.aside
+                aria-label="Mobile navigation drawer"
+                animate={{ x: 0 }}
+                className="relative h-full w-[min(82vw,320px)] bg-forest-950 px-5 py-6 text-white shadow-2xl"
+                exit={{ x: -24 }}
+                id="mobile-navigation"
+                initial={{ x: -24 }}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <div className="mb-10 flex items-center justify-between">
+                  <Brand />
+                  <button
+                    aria-label="Close navigation menu"
+                    className="flex size-9 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-300"
+                    onClick={() => setIsOpen(false)}
+                    type="button"
+                  >
+                    <X aria-hidden="true" className="size-5" />
+                  </button>
+                </div>
+                <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+                  Workspace
+                </p>
+                <NavigationLinks onNavigate={() => setIsOpen(false)} />
+              </motion.aside>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </>
     );
   }

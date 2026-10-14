@@ -1,9 +1,14 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { motion } from "framer-motion";
 import { ArrowDownToLine, Wallet } from "lucide-react";
 import { FinancePageState } from "@/components/finance/finance-page-state";
-import { SummaryCard } from "@/components/dashboard/summary-card";
+import { PageEntrance } from "@/components/ui/page-entrance";
+import {
+  SummaryCard,
+  summaryCardsVariants,
+} from "@/components/dashboard/summary-card";
 import { TransactionsManager } from "@/components/transactions/transactions-manager";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import { formatRupees, getCurrentMonthKey } from "@/lib/finance-utils";
@@ -38,6 +43,7 @@ export function IncomePage() {
   const selectedMonth = currentMonth || monthKeys[0] || "";
 
   return (
+    <PageEntrance>
     <div className="space-y-7">
       <div>
         <h2 className="text-2xl font-semibold tracking-[-0.04em] text-ink">
@@ -48,7 +54,13 @@ export function IncomePage() {
           salary entries, exactly once.
         </p>
       </div>
-      <section aria-label="Monthly income" className="grid gap-4 sm:grid-cols-2">
+      <motion.section
+        aria-label="Monthly income"
+        animate="visible"
+        className="grid gap-4 sm:grid-cols-2"
+        initial="hidden"
+        variants={summaryCardsVariants}
+      >
         <SummaryCard
           icon={ArrowDownToLine}
           label="Income this month"
@@ -69,7 +81,7 @@ export function IncomePage() {
             ),
           )}
         />
-      </section>
+      </motion.section>
 
       <section
         aria-labelledby="income-history-heading"
@@ -133,5 +145,6 @@ export function IncomePage() {
         transactions={incomeTransactions}
       />
     </div>
+    </PageEntrance>
   );
 }

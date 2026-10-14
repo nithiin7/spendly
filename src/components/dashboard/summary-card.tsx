@@ -1,4 +1,21 @@
 import type { LucideIcon } from "lucide-react";
+import { motion, type Variants } from "framer-motion";
+
+export const summaryCardsVariants: Variants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.055, delayChildren: 0.04 },
+  },
+};
+
+const summaryCardVariants: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const },
+  },
+};
 
 type SummaryCardProps = {
   label: string;
@@ -16,7 +33,10 @@ export function SummaryCard({
   tone = "default",
 }: SummaryCardProps) {
   return (
-    <article className="rounded-2xl border border-border bg-white p-5 shadow-card sm:p-6">
+    <motion.article
+      className="rounded-2xl border border-border bg-white p-5 shadow-card sm:p-6"
+      variants={summaryCardVariants}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-muted">{label}</p>
@@ -35,6 +55,6 @@ export function SummaryCard({
         </span>
       </div>
       <p className="mt-4 text-xs text-muted">{note}</p>
-    </article>
+    </motion.article>
   );
 }

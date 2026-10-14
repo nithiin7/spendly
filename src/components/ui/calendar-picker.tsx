@@ -9,6 +9,7 @@ import {
   type CSSProperties,
 } from "react";
 import { createPortal } from "react-dom";
+import { motion } from "framer-motion";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 
 type CalendarPickerProps = {
@@ -237,7 +238,7 @@ export function CalendarPicker({
       {isOpen &&
         portalTarget &&
         createPortal(
-        <div
+        <motion.div
           aria-label={mode === "date" ? "Choose a date" : "Choose a month"}
           className="fixed z-100 w-[min(19rem,calc(100vw-3rem))] overflow-y-auto rounded-2xl border border-border bg-white p-4 shadow-xl"
           id={popoverId}
@@ -247,6 +248,9 @@ export function CalendarPicker({
             ...popoverStyle,
             visibility: popoverStyle ? "visible" : "hidden",
           }}
+          initial={{ opacity: 0, scale: 0.98, y: 4 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.14, ease: "easeOut" }}
         >
           <div className="mb-3 flex items-center justify-between">
             <button
@@ -360,7 +364,7 @@ export function CalendarPicker({
               Clear date
             </button>
           )}
-        </div>,
+        </motion.div>,
         portalTarget,
       )}
     </div>

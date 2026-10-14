@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { motion } from "framer-motion";
 import { CalendarPicker } from "@/components/ui/calendar-picker";
+import { PageEntrance } from "@/components/ui/page-entrance";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
@@ -12,7 +14,10 @@ import {
 import { CategoryBreakdown } from "@/components/dashboard/category-breakdown";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
-import { SummaryCard } from "@/components/dashboard/summary-card";
+import {
+  SummaryCard,
+  summaryCardsVariants,
+} from "@/components/dashboard/summary-card";
 import { TransactionForm } from "@/components/transactions/transaction-form";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import { Modal } from "@/components/ui/modal";
@@ -179,6 +184,7 @@ export function FinanceDashboard() {
     : "No expenses recorded";
 
   return (
+    <PageEntrance>
     <div className="space-y-7" id="overview">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -235,9 +241,12 @@ export function FinanceDashboard() {
         </p>
       )}
 
-      <section
+      <motion.section
         aria-label="Monthly financial summary"
+        animate="visible"
         className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        initial="hidden"
+        variants={summaryCardsVariants}
       >
         <SummaryCard
           icon={Wallet}
@@ -269,7 +278,7 @@ export function FinanceDashboard() {
           tone={summary.balancePaise >= 0 ? "positive" : "default"}
           value={savingsRate}
         />
-      </section>
+      </motion.section>
 
       <section
         aria-label={`${selectedMonthLabel} budget`}
@@ -368,5 +377,6 @@ export function FinanceDashboard() {
         />
       )}
     </div>
+    </PageEntrance>
   );
 }

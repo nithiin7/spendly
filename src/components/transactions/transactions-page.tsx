@@ -2,6 +2,7 @@
 
 import { FinancePageState } from "@/components/finance/finance-page-state";
 import { TransactionsManager } from "@/components/transactions/transactions-manager";
+import { PageEntrance } from "@/components/ui/page-entrance";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 
 export function TransactionsPage() {
@@ -15,6 +16,7 @@ export function TransactionsPage() {
   const { categories, transactions } = finance.data;
 
   return (
+    <PageEntrance>
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold tracking-[-0.04em] text-ink">
@@ -45,5 +47,6 @@ export function TransactionsPage() {
         transactions={transactions}
       />
     </div>
+    </PageEntrance>
   );
 }

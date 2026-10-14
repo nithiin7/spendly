@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { motion } from "framer-motion";
 import { X } from "lucide-react";
 
 type ModalProps = {
@@ -32,12 +33,14 @@ export function Modal({
   }, []);
 
   return (
-    <dialog
+    <motion.dialog
+      animate={{ opacity: 1, scale: 1, y: 0 }}
       aria-describedby={description ? descriptionId : undefined}
       aria-labelledby={titleId}
       className={`m-auto max-h-[min(90vh,760px)] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-border bg-white p-0 text-ink shadow-2xl backdrop:bg-forest-950/40 ${
         size === "small" ? "max-w-md" : "max-w-xl"
       }`}
+      initial={{ opacity: 0, scale: 0.98, y: 8 }}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
@@ -46,6 +49,7 @@ export function Modal({
         if (event.target === event.currentTarget) onClose();
       }}
       ref={dialogRef}
+      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
         <div>
@@ -68,6 +72,6 @@ export function Modal({
         </button>
       </div>
       {children}
-    </dialog>
+    </motion.dialog>
   );
 }
