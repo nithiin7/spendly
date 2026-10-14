@@ -4,8 +4,14 @@ import { useState, type FormEvent } from "react";
 import { Check, Pencil, Plus, X } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { parseRupeesToPaise } from "@/lib/finance-utils";
+import {
+  applyCategorySuggestion,
+  suggestCategory,
+  type CategorySuggestion,
+} from "@/lib/categorization";
 import type {
   Category,
+  CategoryRule,
   Transaction,
   TransactionInput,
   TransactionType,
@@ -14,6 +20,7 @@ import type {
 type TransactionFormProps = {
   transaction?: Transaction;
   categories: Category[];
+  rules: CategoryRule[];
   onClose: () => void;
   onSave: (input: TransactionInput) => boolean;
   onAddCategory: (name: string, type: TransactionType) => Category;
@@ -28,6 +35,7 @@ function localToday(): string {
 export function TransactionForm({
   transaction,
   categories,
+  rules,
   onClose,
   onSave,
   onAddCategory,
@@ -40,9 +48,10 @@ export function TransactionForm({
     (category) => category.type === type,
   );
   const [categoryId, setCategoryId] = useState(
-    transaction?.categoryId ??
-      availableCategories[0]?.id ??
-      "",
+    transaction?.categoryId ?? "",
+  );
+  const [categorySource, setCategorySource] = useState<"suggested" | "manual">(
+    transaction ? transaction.categorySource ?? "manual" : "suggested",
   );
   const [description, setDescription] = useState(
     transaction?.description ?? "",
@@ -63,10 +72,30 @@ export function TransactionForm({
 
   function changeType(nextType: TransactionType) {
     setType(nextType);
-    setCategoryId(
-      categories.find((category) => category.type === nextType)?.id ?? "",
+    const suggestion = suggestCategory(
+      description,
+      categories,
+      rules,
+      nextType,
     );
+    const selection = applyCategorySuggestion(
+      { categoryId, categorySource: "suggested" },
+      suggestion,
+    );
+    setCategorySource(selection.categorySource);
+    setCategoryId(selection.categoryId ?? "");
     setError(null);
+  }
+
+  function updateDescription(value: string) {
+    setDescription(value);
+    if (categorySource === "manual") return;
+    const selection = applyCategorySuggestion(
+      { categoryId, categorySource },
+      suggestCategory(value, categories, rules, type),
+    );
+    setCategoryId(selection.categoryId ?? "");
+    setCategorySource(selection.categorySource);
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -90,6 +119,7 @@ export function TransactionForm({
       description: description.trim(),
       amountPaise,
       categoryId,
+      categorySource,
       date,
       ...(paymentMethod.trim() ? { paymentMethod: paymentMethod.trim() } : {}),
       ...(notes.trim() ? { notes: notes.trim() } : {}),
@@ -102,6 +132,7 @@ export function TransactionForm({
     try {
       const category = onAddCategory(categoryName, type);
       setCategoryId(category.id);
+      setCategorySource("manual");
       setCategoryName("");
       setIsAddingCategory(false);
       setError(null);
@@ -124,6 +155,12 @@ export function TransactionForm({
 
   const selectedCategory = categories.find(
     (category) => category.id === categoryId,
+  );
+  const currentSuggestion: CategorySuggestion | null = suggestCategory(
+    description,
+    categories,
+    rules,
+    type,
   );
 
   return (
@@ -161,7 +198,7 @@ export function TransactionForm({
               autoFocus
               className="form-input"
               maxLength={100}
-              onChange={(event) => setDescription(event.target.value)}
+              onChange={(event) => updateDescription(event.target.value)}
               placeholder="e.g. Weekly groceries"
               required
               type="text"
@@ -209,7 +246,10 @@ export function TransactionForm({
               <select
                 className="form-input min-w-0 flex-1"
                 id="categoryId"
-                onChange={(event) => setCategoryId(event.target.value)}
+                onChange={(event) => {
+                  setCategoryId(event.target.value);
+                  setCategorySource("manual");
+                }}
                 required
                 value={categoryId}
               >
@@ -245,6 +285,22 @@ export function TransactionForm({
                 <Plus aria-hidden="true" className="size-4" />
               </button>
             </div>
+            <p
+              aria-live="polite"
+              className={`mt-1.5 text-xs ${
+                categorySource === "suggested"
+                  ? "text-forest-800"
+                  : "text-muted"
+              }`}
+            >
+              {categorySource === "suggested"
+                ? description.trim()
+                  ? currentSuggestion?.confidence === "fallback"
+                    ? "Suggested · no rule matched; using the fallback category."
+                    : "Suggested from description · change category to confirm your choice."
+                  : "Enter a description to get a category suggestion."
+                : "Chosen by you · description changes won’t change this category."}
+            </p>
             {isAddingCategory && (
               <div className="flex gap-2 pt-2">
                 <input

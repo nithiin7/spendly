@@ -1,7 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createCategory, renameCategory } from "@/lib/categories";
+import {
+  createCategory,
+  defaultCategoryRules,
+  renameCategory,
+} from "@/lib/categories";
+import {
+  createCategoryRule,
+  removeCategoryRule,
+  updateCategoryRule,
+} from "@/lib/categorization";
 import {
   loadFinanceData,
   resetFinanceData,
@@ -9,6 +18,7 @@ import {
 } from "@/lib/finance-storage";
 import type {
   Category,
+  CategoryRuleInput,
   FinanceData,
   Transaction,
   TransactionInput,
@@ -124,10 +134,88 @@ export function useFinanceData() {
         throw new Error("Finance data is still loading.");
       }
       const category = createCategory(name, current.categories, type);
-      if (!commit({ ...current, categories: [...current.categories, category] })) {
+      if (
+        !commit({
+          ...current,
+          categories: [...current.categories, category],
+          rules: current.rules ?? defaultCategoryRules,
+        })
+      ) {
         throw new Error("The new category could not be saved.");
       }
       return category;
+    },
+    [commit],
+  );
+
+  const addCategorizationRule = useCallback(
+    (input: CategoryRuleInput): boolean => {
+      const current = dataRef.current;
+      if (!current) return false;
+      try {
+        const rules = current.rules ?? defaultCategoryRules;
+        const rule = createCategoryRule(
+          input.categoryId,
+          input.keywords,
+          input.priority,
+          current.categories,
+          rules,
+        );
+        return commit({ ...current, rules: [...rules, rule] });
+      } catch (error) {
+        setState((previous) => ({
+          ...previous,
+          error:
+            error instanceof Error ? error.message : "Rule could not be added.",
+        }));
+        return false;
+      }
+    },
+    [commit],
+  );
+
+  const editCategorizationRule = useCallback(
+    (ruleId: string, input: CategoryRuleInput): boolean => {
+      const current = dataRef.current;
+      if (!current) return false;
+      try {
+        const rules = updateCategoryRule(
+          current.rules ?? defaultCategoryRules,
+          ruleId,
+          input,
+          current.categories,
+        );
+        return commit({ ...current, rules });
+      } catch (error) {
+        setState((previous) => ({
+          ...previous,
+          error:
+            error instanceof Error ? error.message : "Rule could not be changed.",
+        }));
+        return false;
+      }
+    },
+    [commit],
+  );
+
+  const deleteCategorizationRule = useCallback(
+    (ruleId: string): boolean => {
+      const current = dataRef.current;
+      if (!current) return false;
+      try {
+        const rules = removeCategoryRule(
+          current.rules ?? defaultCategoryRules,
+          ruleId,
+        );
+        return commit({ ...current, rules });
+      } catch (error) {
+        setState((previous) => ({
+          ...previous,
+          error:
+            error instanceof Error ? error.message : "Rule could not be removed.",
+        }));
+        return false;
+      }
     },
     [commit],
   );
@@ -180,6 +268,9 @@ export function useFinanceData() {
     deleteTransaction,
     addCustomCategory,
     editCategory,
+    addCategorizationRule,
+    editCategorizationRule,
+    deleteCategorizationRule,
     resetDemoData,
   };
 }

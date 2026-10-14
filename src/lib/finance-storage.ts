@@ -1,4 +1,5 @@
 import { getDemoFinanceData } from "@/lib/demo-data";
+import { defaultCategoryRules } from "@/lib/categories";
 import { isFinanceData } from "@/lib/finance-utils";
 import type { FinanceData } from "@/types/finance";
 
@@ -28,7 +29,30 @@ export function loadFinanceData(): FinanceData {
         "Saved finance data has an unsupported format. Your stored data was left unchanged.",
       );
     }
-    return parsed;
+    const normalizedData: FinanceData = {
+      categories: parsed.categories.map((category) => ({
+        ...category,
+        isFallback:
+          category.isFallback ?? category.name.toLocaleLowerCase() === "other",
+      })),
+      rules: parsed.rules ?? defaultCategoryRules,
+      transactions: parsed.transactions.map((transaction) => ({
+        ...transaction,
+        categorySource: transaction.categorySource ?? "manual",
+      })),
+    };
+    if (
+      parsed.rules === undefined ||
+      parsed.categories.some(
+        (category) => category.isFallback === undefined,
+      ) ||
+      parsed.transactions.some(
+        (transaction) => transaction.categorySource === undefined,
+      )
+    ) {
+      storage.setItem(storageKey, JSON.stringify(normalizedData));
+    }
+    return normalizedData;
   }
 
   const initialData = getDemoFinanceData();

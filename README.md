@@ -31,6 +31,8 @@ src/
     use-finance-data.ts          Client-side state and persistence actions
   lib/
     categories.ts               Default/custom category utilities
+    categorization.ts           Local rule matching and category suggestions
+    categorization.test.ts      Rule engine unit tests
     demo-data.ts                Sample finance data for first run/reset
     finance-storage.ts          Validated localStorage repository
     finance-utils.ts            INR formatting and finance calculations
@@ -44,6 +46,21 @@ is invalid or storage is unavailable, Spendly reports the problem instead of
 silently replacing it. The transaction panel includes an explicit confirmation
 before resetting to the sample dataset.
 
+## Automatic categorization
+
+Expense descriptions are normalized to lowercase, whitespace-separated words
+with punctuation removed, then compared locally against the rules in
+[`src/lib/categories.ts`](./src/lib/categories.ts). The highest-priority match
+wins; when priorities tie, the longer matching phrase wins. A description with
+no reliable match suggests the fallback `Other` category.
+
+Open **Categorization rules** above the transactions list to add, edit, or remove
+custom rules, or edit built-in rules. Enter comma-separated keywords/aliases
+and an integer priority from 0–1000. Matching category suggestions are marked
+as suggested; choosing a category manually marks it confirmed and future
+description edits will not replace it. Rule evaluation never sends descriptions
+outside the browser.
+
 ## Next steps
 
 1. Add focused automated tests for finance calculations, validation, and
@@ -55,5 +72,6 @@ before resetting to the sample dataset.
 
 ```bash
 npm run lint
+npm test
 npm run build
 ```

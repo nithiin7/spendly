@@ -9,16 +9,20 @@ import {
   Pencil,
   Plus,
   Search,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
+import { CategoryRulesManager } from "@/components/transactions/category-rules-manager";
 import {
   filterAndSortTransactions,
   formatTransactionAmount,
 } from "@/lib/finance-utils";
 import type {
   Category,
+  CategoryRule,
+  CategoryRuleInput,
   Transaction,
   TransactionInput,
   TransactionType,
@@ -27,12 +31,16 @@ import { TransactionForm } from "./transaction-form";
 
 type TransactionsManagerProps = {
   categories: Category[];
+  rules: CategoryRule[];
   transactions: Transaction[];
   onAdd: (input: TransactionInput) => boolean;
   onUpdate: (id: string, input: TransactionInput) => boolean;
   onDelete: (id: string) => boolean;
   onAddCategory: (name: string, type: TransactionType) => Category;
   onRenameCategory: (id: string, name: string) => boolean;
+  onAddRule: (input: CategoryRuleInput) => boolean;
+  onEditRule: (ruleId: string, input: CategoryRuleInput) => boolean;
+  onDeleteRule: (ruleId: string) => boolean;
   onResetDemo: () => boolean;
 };
 
@@ -65,12 +73,16 @@ function formatMonth(monthKey: string): string {
 
 export function TransactionsManager({
   categories,
+  rules,
   transactions,
   onAdd,
   onUpdate,
   onDelete,
   onAddCategory,
   onRenameCategory,
+  onAddRule,
+  onEditRule,
+  onDeleteRule,
   onResetDemo,
 }: TransactionsManagerProps) {
   const [query, setQuery] = useState("");
@@ -80,6 +92,7 @@ export function TransactionsManager({
   const [sort, setSort] = useState<TransactionSort>("date-desc");
   const [editing, setEditing] = useState<Transaction | null | "new">(null);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
+  const [showRules, setShowRules] = useState(false);
 
   const filteredTransactions = useMemo(
     () =>
@@ -141,6 +154,7 @@ export function TransactionsManager({
         filters={{ query, month, type, sort }}
         months={months}
         onAdd={() => setEditing("new")}
+        onManageRules={() => setShowRules(true)}
         onDelete={(transaction) =>
           setConfirmation({ type: "delete", transaction })
         }
@@ -157,6 +171,7 @@ export function TransactionsManager({
       {editing !== null && (
         <TransactionForm
           categories={categories}
+          rules={rules}
           onAddCategory={onAddCategory}
           onClose={() => setEditing(null)}
           onRenameCategory={onRenameCategory}
@@ -171,6 +186,16 @@ export function TransactionsManager({
           confirmation={confirmation}
           onClose={() => setConfirmation(null)}
           onConfirm={confirmAction}
+        />
+      )}
+      {showRules && (
+        <CategoryRulesManager
+          categories={categories}
+          onAdd={onAddRule}
+          onClose={() => setShowRules(false)}
+          onDelete={onDeleteRule}
+          onEdit={onEditRule}
+          rules={rules}
         />
       )}
     </>
@@ -191,6 +216,7 @@ type TransactionPanelProps = {
   };
   months: string[];
   onAdd: () => void;
+  onManageRules: () => void;
   onDelete: (transaction: Transaction) => void;
   onEdit: (transaction: Transaction) => void;
   onReset: () => void;
@@ -211,6 +237,7 @@ function TransactionPanel({
   filters,
   months,
   onAdd,
+  onManageRules,
   onDelete,
   onEdit,
   onReset,
@@ -247,6 +274,14 @@ function TransactionPanel({
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          <button
+            className="button-secondary"
+            onClick={onManageRules}
+            type="button"
+          >
+            <Sparkles aria-hidden="true" className="size-4" />
+            Categorization rules
+          </button>
           <button className="button-secondary" onClick={onReset} type="button">
             Reset sample data
           </button>
@@ -381,7 +416,16 @@ function TransactionPanel({
                   </div>
                   <span className="pl-12 text-xs text-muted md:pl-0 md:text-sm md:text-ink">
                     <span className="md:hidden">Category · </span>
-                    {category?.name ?? "Uncategorized"}
+                    <span>{category?.name ?? "Uncategorized"}</span>
+                    {transaction.categorySource === "suggested" ? (
+                      <span className="ml-2 rounded-full bg-sage-100 px-2 py-0.5 text-[10px] font-medium text-forest-800">
+                        Suggested
+                      </span>
+                    ) : (
+                      <span className="ml-2 rounded-full bg-canvas px-2 py-0.5 text-[10px] font-medium text-muted">
+                        Confirmed
+                      </span>
+                    )}
                   </span>
                   <span className="pl-12 text-xs text-muted md:pl-0 md:text-sm md:text-ink">
                     <span className="md:hidden">Date · </span>

@@ -1,5 +1,6 @@
 import type {
   Category,
+  CategoryRule,
   FinanceData,
   SpendingCategory,
   SpendingMonth,
@@ -165,9 +166,35 @@ export function isFinanceData(value: unknown): value is FinanceData {
       typeof (category as Category).name === "string" &&
       typeof (category as Category).color === "string" &&
       typeof (category as Category).isDefault === "boolean" &&
+      ((category as Category).isFallback === undefined ||
+        typeof (category as Category).isFallback === "boolean") &&
       ((category as Category).type === "income" ||
         (category as Category).type === "expense"),
   );
+  const validRules =
+    candidate.rules === undefined ||
+    (Array.isArray(candidate.rules) &&
+      candidate.rules.every(
+        (rule: unknown) =>
+          typeof rule === "object" &&
+          rule !== null &&
+          typeof (rule as CategoryRule).id === "string" &&
+          typeof (rule as CategoryRule).categoryId === "string" &&
+          storedCategories.some(
+            (category: unknown) =>
+              typeof category === "object" &&
+              category !== null &&
+              (category as Category).id ===
+                (rule as CategoryRule).categoryId,
+          ) &&
+          Array.isArray((rule as CategoryRule).keywords) &&
+          (rule as CategoryRule).keywords.every(
+            (keyword: unknown) =>
+              typeof keyword === "string" && keyword.trim().length > 0,
+          ) &&
+          Number.isInteger((rule as CategoryRule).priority) &&
+          typeof (rule as CategoryRule).isDefault === "boolean",
+      ));
   const validTransactions = storedTransactions.every(
     (transaction: unknown) => {
       if (typeof transaction !== "object" || transaction === null) {
@@ -182,6 +209,9 @@ export function isFinanceData(value: unknown): value is FinanceData {
         Number.isSafeInteger(item.amountPaise) &&
         item.amountPaise > 0 &&
         typeof item.categoryId === "string" &&
+        (item.categorySource === undefined ||
+          item.categorySource === "manual" ||
+          item.categorySource === "suggested") &&
         storedCategories.some(
           (category: unknown) =>
             typeof category === "object" &&
@@ -199,7 +229,7 @@ export function isFinanceData(value: unknown): value is FinanceData {
     },
   );
 
-  return validCategories && validTransactions;
+  return validCategories && validRules && validTransactions;
 }
 
 export function formatTransactionAmount(

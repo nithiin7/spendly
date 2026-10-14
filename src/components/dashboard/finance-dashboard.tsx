@@ -212,9 +212,13 @@ export function FinanceDashboard() {
 
       <TransactionsManager
         categories={categories}
+        rules={finance.data.rules}
         onAdd={finance.addTransaction}
         onAddCategory={finance.addCustomCategory}
+        onAddRule={finance.addCategorizationRule}
         onDelete={finance.deleteTransaction}
+        onDeleteRule={finance.deleteCategorizationRule}
+        onEditRule={finance.editCategorizationRule}
         onRenameCategory={finance.editCategory}
         onResetDemo={finance.resetDemoData}
         onUpdate={finance.updateTransaction}

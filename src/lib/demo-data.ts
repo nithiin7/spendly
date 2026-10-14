@@ -1,4 +1,7 @@
-import { defaultCategories } from "@/lib/categories";
+import {
+  defaultCategories,
+  defaultCategoryRules,
+} from "@/lib/categories";
 import type { FinanceData } from "@/types/finance";
 
 function makeDemoFinanceData(): FinanceData {
@@ -17,6 +20,7 @@ function makeDemoFinanceData(): FinanceData {
 
   return {
     categories: defaultCategories,
+    rules: defaultCategoryRules,
     transactions: [
       {
         id: "demo-1",
@@ -24,6 +28,7 @@ function makeDemoFinanceData(): FinanceData {
         description: "Monthly rent",
         amountPaise: 3200000,
         categoryId: "category-1",
+        categorySource: "manual",
         date: dates.first,
         paymentMethod: "Bank transfer",
         createdAt,
@@ -35,6 +40,7 @@ function makeDemoFinanceData(): FinanceData {
         description: "Monthly salary",
         amountPaise: 9500000,
         categoryId: "category-15",
+        categorySource: "manual",
         date: dates.first,
         paymentMethod: "Bank transfer",
         createdAt,
@@ -46,6 +52,7 @@ function makeDemoFinanceData(): FinanceData {
         description: "Weekly groceries",
         amountPaise: 284650,
         categoryId: "category-3",
+        categorySource: "manual",
         date: dates.today,
         paymentMethod: "UPI",
         createdAt,
@@ -57,6 +64,7 @@ function makeDemoFinanceData(): FinanceData {
         description: "Metro card recharge",
         amountPaise: 120000,
         categoryId: "category-6",
+        categorySource: "manual",
         date: dates.today,
         paymentMethod: "UPI",
         createdAt,
@@ -68,6 +76,7 @@ function makeDemoFinanceData(): FinanceData {
         description: "Electricity bill",
         amountPaise: 186430,
         categoryId: "category-8",
+        categorySource: "manual",
         date: dates.today,
         paymentMethod: "UPI",
         createdAt,
@@ -79,6 +88,7 @@ function makeDemoFinanceData(): FinanceData {
         description: "Dinner with friends",
         amountPaise: 147580,
         categoryId: "category-4",
+        categorySource: "manual",
         date: dates.today,
         paymentMethod: "Card",
         createdAt,
@@ -90,6 +100,7 @@ function makeDemoFinanceData(): FinanceData {
         description: "Cab to the airport",
         amountPaise: 76500,
         categoryId: "category-5",
+        categorySource: "manual",
         date: dates.previous,
         paymentMethod: "UPI",
         createdAt,
@@ -103,6 +114,10 @@ export function getDemoFinanceData(): FinanceData {
   const demoFinanceData = makeDemoFinanceData();
   return {
     categories: demoFinanceData.categories.map((category) => ({ ...category })),
+    rules: demoFinanceData.rules.map((rule) => ({
+      ...rule,
+      keywords: [...rule.keywords],
+    })),
     transactions: demoFinanceData.transactions.map((transaction) => ({
       ...transaction,
     })),

@@ -6,7 +6,21 @@ export type Category = {
   color: string;
   isDefault: boolean;
   type: TransactionType;
+  isFallback: boolean;
 };
+
+export type CategoryRule = {
+  id: string;
+  categoryId: string;
+  keywords: string[];
+  priority: number;
+  isDefault: boolean;
+};
+
+export type CategoryRuleInput = Pick<
+  CategoryRule,
+  "categoryId" | "keywords" | "priority"
+>;
 
 export type Transaction = {
   id: string;
@@ -14,6 +28,7 @@ export type Transaction = {
   description: string;
   amountPaise: number;
   categoryId: string;
+  categorySource?: "suggested" | "manual";
   date: string;
   paymentMethod?: string;
   notes?: string;
@@ -28,6 +43,7 @@ export type TransactionInput = Omit<
 
 export type FinanceData = {
   categories: Category[];
+  rules: CategoryRule[];
   transactions: Transaction[];
 };
 
