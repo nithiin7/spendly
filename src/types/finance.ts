@@ -187,6 +187,19 @@ export type SpendingCategory = {
   color: string;
 };
 
+export type CategorySpendingComparison = SpendingCategory & {
+  previousAmountPaise: number;
+  changePaise: number;
+  changePercent: number | null;
+};
+
+export type MonthlySpendingAnalysis = {
+  categoryChanges: CategorySpendingComparison[];
+  fixedExpensePaise: number;
+  variableExpensePaise: number;
+  largestTransactions: Transaction[];
+};
+
 export type MonthlyFinancialSummary = {
   incomePaise: number;
   expensePaise: number;

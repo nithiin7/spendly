@@ -6,6 +6,7 @@ import {
   filterAndSortTransactions,
   getCashFlowMonths,
   getMonthlyFinancialSummary,
+  getMonthlySpendingAnalysis,
   getPreviousMonthKey,
   getSpendingMonths,
   parseRupeesToPaise,
@@ -170,9 +171,9 @@ test("calculates income, expenses, net cash flow, and month-over-month changes",
         expensePaise: 120000,
         netPaise: 180000,
         change: {
-          incomePaise: -600000,
+          incomePaise: 300000,
           expensePaise: 120000,
-          netPaise: -720000,
+          netPaise: 180000,
         },
       },
       {
@@ -213,6 +214,86 @@ test("cash flow trends include empty months and cross calendar-year boundaries",
   assert.equal(months[0].change.incomePaise, 0);
   assert.equal(months[1].change.netPaise, 10000);
   assert.equal(months[2].change.netPaise, -10000);
+});
+
+test("analyzes category changes, recurring fixed expenses, and largest transactions", () => {
+  const transactions = [
+    transaction(
+      "recurring rent",
+      "expense",
+      "2026-10-02",
+      180000,
+      "category-1",
+    ),
+    transaction("groceries", "expense", "2026-10-03", 325500, "category-3"),
+    transaction("dining", "expense", "2026-10-04", 70000, "category-4"),
+    transaction("utilities", "expense", "2026-10-05", 90000, "category-2"),
+    transaction("travel", "expense", "2026-10-06", 60000, "category-5"),
+    transaction("health", "expense", "2026-10-07", 40000, "category-6"),
+    transaction("previous rent", "expense", "2026-09-02", 170000, "category-1"),
+    transaction(
+      "previous groceries",
+      "expense",
+      "2026-09-03",
+      400000,
+      "category-3",
+    ),
+    transaction(
+      "previous entertainment",
+      "expense",
+      "2026-09-04",
+      70000,
+      "category-8",
+    ),
+  ];
+  const analysis = getMonthlySpendingAnalysis(
+    transactions,
+    defaultCategories,
+    [
+      {
+        id: "occurrence-1",
+        ruleId: "rule-1",
+        scheduledDate: "2026-10-02",
+        date: "2026-10-02",
+        description: "recurring rent",
+        type: "expense",
+        amountPaise: 180000,
+        categoryId: "category-1",
+        status: "confirmed",
+        transactionId: "recurring rent",
+        createdAt: "2026-10-02T12:00:00.000Z",
+        updatedAt: "2026-10-02T12:00:00.000Z",
+      },
+    ],
+    "2026-10",
+  );
+
+  assert.equal(analysis.fixedExpensePaise, 180000);
+  assert.equal(analysis.variableExpensePaise, 585500);
+  assert.deepEqual(
+    analysis.largestTransactions.map(({ id }) => id),
+    ["groceries", "recurring rent", "utilities", "dining", "travel"],
+  );
+  assert.deepEqual(
+    analysis.categoryChanges.map(
+      ({ id, amountPaise, previousAmountPaise, changePaise, changePercent }) => [
+        id,
+        amountPaise,
+        previousAmountPaise,
+        changePaise,
+        changePercent,
+      ],
+    ),
+    [
+      ["category-3", 325500, 400000, -74500, -18.625],
+      ["category-1", 180000, 170000, 10000, (10000 / 170000) * 100],
+      ["category-2", 90000, 0, 90000, null],
+      ["category-4", 70000, 0, 70000, null],
+      ["category-5", 60000, 0, 60000, null],
+      ["category-6", 40000, 0, 40000, null],
+      ["category-8", 0, 70000, -70000, -100],
+    ],
+  );
 });
 
 test("search, month, type, category, and sorting filters compose correctly across years", () => {

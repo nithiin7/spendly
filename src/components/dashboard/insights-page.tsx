@@ -6,6 +6,7 @@ import { FinancePageState } from "@/components/finance/finance-page-state";
 import { PageEntrance } from "@/components/ui/page-entrance";
 import { CategoryBreakdown } from "@/components/dashboard/category-breakdown";
 import { CashFlowTrends } from "@/components/dashboard/cash-flow-trends";
+import { SpendingAnalysis } from "@/components/dashboard/spending-analysis";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import Link from "next/link";
@@ -13,6 +14,7 @@ import {
   formatRupees,
   getCurrentMonthKey,
   getCashFlowMonths,
+  getMonthlySpendingAnalysis,
   getMonthlyFinancialSummary,
   getPreviousMonthKey,
   getSpendingMonths,
@@ -41,11 +43,17 @@ export function InsightsPage() {
   }
 
   const monthKey = selectedMonth ?? currentMonth;
-  const { transactions, categories } = finance.data;
+  const { transactions, categories, recurringOccurrences } = finance.data;
   const currency = finance.data.preferences?.defaultCurrency ?? "INR";
   const formatMoney = (amountPaise: number) =>
     formatRupees(amountPaise, currency);
   const summary = getMonthlyFinancialSummary(transactions, categories, monthKey);
+  const spendingAnalysis = getMonthlySpendingAnalysis(
+    transactions,
+    categories,
+    recurringOccurrences,
+    monthKey,
+  );
   const monthlyBudget = finance.data.budgets.find(
     (budget) =>
       budget.year === Number(monthKey.slice(0, 4)) &&
@@ -153,6 +161,14 @@ export function InsightsPage() {
         <SpendingChart currentMonth={monthKey} currency={currency} months={months} />
         <CategoryBreakdown categories={summary.categoryTotals} currency={currency} />
       </div>
+
+      <SpendingAnalysis
+        analysis={spendingAnalysis}
+        currency={currency}
+        monthLabel={monthLabel}
+        previousMonthLabel={previousLabel}
+        totalExpensePaise={summary.expensePaise}
+      />
 
       <section
         aria-labelledby="budget-comparison-heading"

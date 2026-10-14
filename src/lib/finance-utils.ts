@@ -3,7 +3,9 @@ import type {
   CategoryRule,
   CashFlowMonth,
   FinanceData,
+  MonthlySpendingAnalysis,
   MonthlyFinancialSummary,
+  RecurringOccurrence,
   SpendingCategory,
   SpendingMonth,
   Transaction,
@@ -250,6 +252,95 @@ export function getSpendingCategories(
     }))
     .filter(({ amountPaise }) => amountPaise > 0)
     .sort((left, right) => right.amountPaise - left.amountPaise);
+}
+
+export function getMonthlySpendingAnalysis(
+  transactions: Transaction[],
+  categories: Category[],
+  recurringOccurrences: RecurringOccurrence[],
+  monthKey: string,
+): MonthlySpendingAnalysis {
+  const previousMonthKey = getPreviousMonthKey(monthKey);
+  const categoryTotals = new Map<
+    string,
+    { amountPaise: number; previousAmountPaise: number }
+  >();
+  const fixedTransactionIds = new Set(
+    recurringOccurrences
+      .filter(
+        (occurrence) =>
+          occurrence.status === "confirmed" &&
+          occurrence.transactionId !== undefined,
+      )
+      .map((occurrence) => occurrence.transactionId),
+  );
+  let fixedExpensePaise = 0;
+  let variableExpensePaise = 0;
+  const largestTransactions: Transaction[] = [];
+
+  for (const transaction of transactions) {
+    if (transaction.type !== "expense") continue;
+
+    const transactionMonthKey = dateToMonthKey(transaction.date);
+    if (transactionMonthKey !== monthKey && transactionMonthKey !== previousMonthKey) {
+      continue;
+    }
+
+    const totals = categoryTotals.get(transaction.categoryId) ?? {
+      amountPaise: 0,
+      previousAmountPaise: 0,
+    };
+    if (transactionMonthKey === monthKey) {
+      totals.amountPaise += transaction.amountPaise;
+      if (fixedTransactionIds.has(transaction.id)) {
+        fixedExpensePaise += transaction.amountPaise;
+      } else {
+        variableExpensePaise += transaction.amountPaise;
+      }
+      largestTransactions.push(transaction);
+    } else {
+      totals.previousAmountPaise += transaction.amountPaise;
+    }
+    categoryTotals.set(transaction.categoryId, totals);
+  }
+
+  const categoryNames = new Map(categories.map(({ id, name, color }) => [id, { name, color }]));
+  const categoryChanges = [...categoryTotals.entries()]
+    .map(([id, totals]) => {
+      const category = categoryNames.get(id);
+      const changePaise = totals.amountPaise - totals.previousAmountPaise;
+      return {
+        id,
+        label: category?.name ?? "Uncategorized",
+        color: category?.color ?? "#7b887f",
+        amountPaise: totals.amountPaise,
+        previousAmountPaise: totals.previousAmountPaise,
+        changePaise,
+        changePercent:
+          totals.previousAmountPaise > 0
+            ? (changePaise / totals.previousAmountPaise) * 100
+            : null,
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.amountPaise - left.amountPaise ||
+        right.previousAmountPaise - left.previousAmountPaise ||
+        left.label.localeCompare(right.label),
+    );
+
+  largestTransactions.sort(
+    (left, right) =>
+      right.amountPaise - left.amountPaise ||
+      right.date.localeCompare(left.date),
+  );
+
+  return {
+    categoryChanges,
+    fixedExpensePaise,
+    variableExpensePaise,
+    largestTransactions: largestTransactions.slice(0, 5),
+  };
 }
 
 export function filterAndSortTransactions(
