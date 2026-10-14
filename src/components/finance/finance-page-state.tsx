@@ -1,3 +1,5 @@
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
+
 export function FinancePageState({
   isLoading,
   error,
@@ -15,6 +17,9 @@ export function FinancePageState({
       >
         <div className="h-28 animate-pulse rounded-2xl border border-border bg-white" />
         <div className="h-64 animate-pulse rounded-2xl border border-border bg-white" />
+        <div className="flex justify-center py-4">
+          <LoadingIndicator label="Loading your finance data" />
+        </div>
       </div>
     );
   }

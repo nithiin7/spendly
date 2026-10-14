@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { createClient } from "@/lib/supabase/client";
 import { getSupabasePublicConfig } from "@/lib/supabase/config";
 
@@ -186,7 +187,11 @@ export function ProfilePage() {
   }
 
   if (isLoading) {
-    return <p className="text-sm text-muted">Loading your profile…</p>;
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <LoadingIndicator label="Loading your profile" />
+      </div>
+    );
   }
 
   if (!hasSupabaseConfig) {

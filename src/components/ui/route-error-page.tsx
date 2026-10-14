@@ -10,7 +10,7 @@ export function RouteErrorPage({
   reset: () => void;
 }) {
   return (
-    <main className="flex min-h-[70vh] items-center justify-center px-5 py-12">
+    <div className="flex min-h-[70vh] items-center justify-center px-5 py-12">
       <motion.section
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md rounded-3xl border border-border bg-white p-8 text-center shadow-card sm:p-10"
@@ -39,6 +39,6 @@ export function RouteErrorPage({
           </Link>
         </div>
       </motion.section>
-    </main>
+    </div>
   );
 }
