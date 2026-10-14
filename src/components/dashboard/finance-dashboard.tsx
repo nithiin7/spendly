@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { CalendarPicker } from "@/components/ui/calendar-picker";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
@@ -199,11 +200,11 @@ export function FinanceDashboard() {
           <label className="sr-only" htmlFor="dashboard-month">
             Select dashboard month
           </label>
-          <input
+          <CalendarPicker
             className="form-input w-full sm:w-auto"
             id="dashboard-month"
-            onChange={(event) => setSelectedMonth(event.target.value)}
-            type="month"
+            mode="month"
+            onChange={setSelectedMonth}
             value={monthKey}
           />
           <button

@@ -16,6 +16,7 @@ import {
   Pause,
 } from "lucide-react";
 import { FinancePageState } from "@/components/finance/finance-page-state";
+import { CalendarPicker } from "@/components/ui/calendar-picker";
 import { Modal } from "@/components/ui/modal";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import { formatRupees, parseRupeesToPaise } from "@/lib/finance-utils";
@@ -617,6 +618,16 @@ function RecurringRuleForm({
       setError("Choose a category for this schedule.");
       return;
     }
+    if (
+      !isCalendarDate(startDate) ||
+      !isCalendarDate(nextDueDate) ||
+      (endDate && !isCalendarDate(endDate)) ||
+      nextDueDate < startDate ||
+      (endDate && endDate < startDate)
+    ) {
+      setError("Choose valid dates in the schedule range.");
+      return;
+    }
     const parsedInterval = Number(interval);
     const input: RecurringRuleInput = {
       description: description.trim(),
@@ -753,27 +764,21 @@ function RecurringRuleForm({
           )}
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-ink">Start date</span>
-            <input
-              className="form-input"
+            <CalendarPicker
               onChange={(event) => {
-                setStartDate(event.target.value);
-                if (nextDueDate < event.target.value) {
-                  setNextDueDate(event.target.value);
+                setStartDate(event);
+                if (nextDueDate < event) {
+                  setNextDueDate(event);
                 }
               }}
-              required
-              type="date"
               value={startDate}
             />
           </label>
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-ink">Next due date</span>
-            <input
-              className="form-input"
+            <CalendarPicker
               min={startDate}
-              onChange={(event) => setNextDueDate(event.target.value)}
-              required
-              type="date"
+              onChange={setNextDueDate}
               value={nextDueDate}
             />
           </label>
@@ -781,11 +786,10 @@ function RecurringRuleForm({
             <span className="text-sm font-medium text-ink">
               End date <span className="font-normal text-muted">· optional</span>
             </span>
-            <input
-              className="form-input"
+            <CalendarPicker
+              clearable
               min={startDate}
-              onChange={(event) => setEndDate(event.target.value)}
-              type="date"
+              onChange={setEndDate}
               value={endDate}
             />
           </label>
@@ -875,11 +879,8 @@ function OccurrenceForm({
         </label>
         <label className="block space-y-1.5">
           <span className="text-sm font-medium text-ink">Occurrence date</span>
-          <input
-            className="form-input"
-            onChange={(event) => setDate(event.target.value)}
-            required
-            type="date"
+          <CalendarPicker
+            onChange={setDate}
             value={date}
           />
         </label>

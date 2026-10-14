@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { CalendarPicker } from "@/components/ui/calendar-picker";
 import { FinancePageState } from "@/components/finance/finance-page-state";
 import { CategoryBreakdown } from "@/components/dashboard/category-breakdown";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
@@ -80,10 +81,10 @@ export function InsightsPage() {
         </div>
         <label className="w-full sm:w-auto">
           <span className="sr-only">Select insights month</span>
-          <input
+          <CalendarPicker
             className="form-input sm:w-auto"
-            onChange={(event) => setSelectedMonth(event.target.value)}
-            type="month"
+            mode="month"
+            onChange={setSelectedMonth}
             value={monthKey}
           />
         </label>

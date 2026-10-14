@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Check, Pencil, Plus, X } from "lucide-react";
+import { CalendarPicker } from "@/components/ui/calendar-picker";
 import { Modal } from "@/components/ui/modal";
 import { parseRupeesToPaise } from "@/lib/finance-utils";
 import {
@@ -232,11 +233,8 @@ export function TransactionForm({
           </label>
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-ink">Date</span>
-            <input
-              className="form-input"
-              onChange={(event) => setDate(event.target.value)}
-              required
-              type="date"
+            <CalendarPicker
+              onChange={setDate}
               value={date}
             />
           </label>

@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { FinancePageState } from "@/components/finance/finance-page-state";
+import { CalendarPicker } from "@/components/ui/calendar-picker";
 import { Modal } from "@/components/ui/modal";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import {
@@ -236,17 +237,17 @@ export function BudgetsPage() {
         </div>
         <label className="w-full sm:w-auto">
           <span className="sr-only">Select budget month</span>
-          <input
+          <CalendarPicker
             className="form-input sm:w-auto"
-            onChange={(event) => {
-              setSelectedMonth(event.target.value);
+            mode="month"
+            onChange={(month) => {
+              setSelectedMonth(month);
               setOverallDraft(null);
               setEditingCategoryId(null);
               setCategoryId("");
               setCategoryAmount("");
               setFormError(null);
             }}
-            type="month"
             value={monthKey}
           />
         </label>
