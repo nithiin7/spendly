@@ -2,8 +2,15 @@ import type {
   Category,
   CategoryRule,
   FinanceData,
+  RecurringOccurrence,
+  RecurringRule,
   Transaction,
 } from "@/types/finance";
+import {
+  isCalendarDate,
+  isRecurringOccurrence,
+  isRecurringRule,
+} from "./recurring-transactions.ts";
 
 export const FINANCE_BACKUP_SCHEMA_VERSION = 1;
 
@@ -21,6 +28,8 @@ export type RestorePlan = {
     categories: number;
     rules: number;
     transactions: number;
+    recurringRules: number;
+    recurringOccurrences: number;
   };
 };
 
@@ -47,12 +56,6 @@ function hasUniqueIds(values: unknown[], label: string): void {
     }
     ids.add(value.id);
   }
-}
-
-function isValidCalendarDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const date = new Date(`${value}T00:00:00.000Z`);
-  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 function isValidCategory(value: unknown): value is Category {
@@ -98,7 +101,7 @@ function isValidTransaction(value: unknown): value is Transaction {
     (value.categorySource !== undefined &&
       value.categorySource !== "suggested" &&
       value.categorySource !== "manual") ||
-    !isValidCalendarDate(String(value.date)) ||
+    !isCalendarDate(String(value.date)) ||
     typeof value.createdAt !== "string" ||
     !Number.isFinite(Date.parse(value.createdAt)) ||
     typeof value.updatedAt !== "string" ||
@@ -120,16 +123,24 @@ function validateFinanceData(value: unknown): FinanceData {
   if (
     !Array.isArray(value.categories) ||
     !Array.isArray(value.rules) ||
-    !Array.isArray(value.transactions)
+    !Array.isArray(value.transactions) ||
+    (value.recurringRules !== undefined &&
+      !Array.isArray(value.recurringRules)) ||
+    (value.recurringOccurrences !== undefined &&
+      !Array.isArray(value.recurringOccurrences))
   ) {
     throw new Error(
-      "Backup data must include categories, rules, and transactions arrays.",
+      "Backup data must include valid categories, rules, transactions, and recurring records.",
     );
   }
+  const recurringRules: unknown[] = value.recurringRules ?? [];
+  const recurringOccurrences: unknown[] = value.recurringOccurrences ?? [];
 
   hasUniqueIds(value.categories, "category");
   hasUniqueIds(value.rules, "rule");
   hasUniqueIds(value.transactions, "transaction");
+  hasUniqueIds(recurringRules, "recurring rule");
+  hasUniqueIds(recurringOccurrences, "recurring occurrence");
 
   if (!value.categories.every(isValidCategory)) {
     throw new Error("Backup contains a category with missing or invalid fields.");
@@ -140,6 +151,16 @@ function validateFinanceData(value: unknown): FinanceData {
   if (!value.transactions.every(isValidTransaction)) {
     throw new Error(
       "Backup contains a transaction with missing or invalid fields or amount.",
+    );
+  }
+  if (!recurringRules.every(isRecurringRule)) {
+    throw new Error(
+      "Backup contains a recurring rule with missing or invalid fields.",
+    );
+  }
+  if (!recurringOccurrences.every(isRecurringOccurrence)) {
+    throw new Error(
+      "Backup contains a recurring occurrence with missing or invalid fields.",
     );
   }
 
@@ -171,10 +192,38 @@ function validateFinanceData(value: unknown): FinanceData {
       );
     }
   }
+  for (const recurringRule of recurringRules) {
+    const category = categoryById.get(recurringRule.categoryId);
+    if (!category || category.type !== recurringRule.type) {
+      throw new Error(
+        `Recurring rule "${recurringRule.id}" references a missing or incompatible category.`,
+      );
+    }
+  }
+  const linkedTransactionIds = new Set<string>();
+  for (const occurrence of recurringOccurrences) {
+    const category = categoryById.get(occurrence.categoryId);
+    if (!category || category.type !== occurrence.type) {
+      throw new Error(
+        `Recurring occurrence "${occurrence.id}" references a missing or incompatible category.`,
+      );
+    }
+    if (occurrence.status === "confirmed") {
+      const transactionId = occurrence.transactionId!;
+      if (linkedTransactionIds.has(transactionId)) {
+        throw new Error(
+          `Recurring occurrence "${occurrence.id}" has a duplicate transaction link.`,
+        );
+      }
+      linkedTransactionIds.add(transactionId);
+    }
+  }
 
   return {
     categories,
     rules: value.rules,
+    recurringRules: recurringRules as RecurringRule[],
+    recurringOccurrences: recurringOccurrences as RecurringOccurrence[],
     transactions: value.transactions.map((transaction) => ({
       ...transaction,
       categorySource: transaction.categorySource ?? "manual",
@@ -260,6 +309,45 @@ function sameTransaction(left: Transaction, right: Transaction): boolean {
   );
 }
 
+function sameRecurringRule(left: RecurringRule, right: RecurringRule): boolean {
+  return (
+    left.id === right.id &&
+    left.description === right.description &&
+    left.type === right.type &&
+    left.amountPaise === right.amountPaise &&
+    left.categoryId === right.categoryId &&
+    left.frequency === right.frequency &&
+    left.interval === right.interval &&
+    left.startDate === right.startDate &&
+    left.nextDueDate === right.nextDueDate &&
+    left.endDate === right.endDate &&
+    left.active === right.active &&
+    left.notes === right.notes &&
+    left.createdAt === right.createdAt &&
+    left.updatedAt === right.updatedAt
+  );
+}
+
+function sameRecurringOccurrence(
+  left: RecurringOccurrence,
+  right: RecurringOccurrence,
+): boolean {
+  return (
+    left.id === right.id &&
+    left.ruleId === right.ruleId &&
+    left.scheduledDate === right.scheduledDate &&
+    left.date === right.date &&
+    left.description === right.description &&
+    left.type === right.type &&
+    left.amountPaise === right.amountPaise &&
+    left.categoryId === right.categoryId &&
+    left.status === right.status &&
+    left.transactionId === right.transactionId &&
+    left.createdAt === right.createdAt &&
+    left.updatedAt === right.updatedAt
+  );
+}
+
 function mergeById<T extends { id: string }>(
   current: T[],
   incoming: T[],
@@ -299,6 +387,8 @@ export function planFinanceRestore(
         categories: validatedIncoming.categories.length,
         rules: validatedIncoming.rules.length,
         transactions: validatedIncoming.transactions.length,
+        recurringRules: validatedIncoming.recurringRules.length,
+        recurringOccurrences: validatedIncoming.recurringOccurrences.length,
       },
     };
   }
@@ -340,10 +430,24 @@ export function planFinanceRestore(
     "transaction",
     sameTransaction,
   );
+  const recurringRules = mergeById(
+    validatedCurrent.recurringRules,
+    validatedIncoming.recurringRules,
+    "recurring rule",
+    sameRecurringRule,
+  );
+  const recurringOccurrences = mergeById(
+    validatedCurrent.recurringOccurrences,
+    validatedIncoming.recurringOccurrences,
+    "recurring occurrence",
+    sameRecurringOccurrence,
+  );
   const mergedData = validateFinanceData({
     categories: categories.records,
     rules: rules.records,
     transactions: transactions.records,
+    recurringRules: recurringRules.records,
+    recurringOccurrences: recurringOccurrences.records,
   });
 
   return {
@@ -352,6 +456,8 @@ export function planFinanceRestore(
       categories: categories.added,
       rules: rules.added,
       transactions: transactions.added,
+      recurringRules: recurringRules.added,
+      recurringOccurrences: recurringOccurrences.added,
     },
   };
 }

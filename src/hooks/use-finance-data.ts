@@ -12,6 +12,13 @@ import {
   updateCategoryRule,
 } from "@/lib/categorization";
 import { removeTransaction } from "@/lib/finance-utils";
+import { createTransactionRecord } from "@/lib/transaction-factory";
+import {
+  createRecurringOccurrence,
+  settleRecurringOccurrence as settleOccurrenceInData,
+  updatePendingOccurrence,
+  validateRecurringRuleInput,
+} from "@/lib/recurring-transactions";
 import {
   clearFinanceData,
   loadFinanceData,
@@ -22,7 +29,9 @@ import type {
   Category,
   CategoryRuleInput,
   FinanceData,
-  Transaction,
+  RecurringOccurrence,
+  RecurringRule,
+  RecurringRuleInput,
   TransactionInput,
   TransactionType,
 } from "@/types/finance";
@@ -81,12 +90,7 @@ export function useFinanceDataState() {
       const current = dataRef.current;
       if (!current) return false;
       const now = new Date().toISOString();
-      const transaction: Transaction = {
-        ...input,
-        id: crypto.randomUUID(),
-        createdAt: now,
-        updatedAt: now,
-      };
+      const transaction = createTransactionRecord(input, crypto.randomUUID(), now);
       return commit({
         ...current,
         transactions: [transaction, ...current.transactions],
@@ -125,6 +129,222 @@ export function useFinanceDataState() {
       });
     },
     [commit],
+  );
+
+  const reportMutationError = useCallback((message: string) => {
+    setState((previous) => ({ ...previous, error: message }));
+  }, []);
+
+  const addRecurringRule = useCallback(
+    (input: RecurringRuleInput): boolean => {
+      const current = dataRef.current;
+      if (!current) return false;
+      const validationError = validateRecurringRuleInput(
+        input,
+        current.categories,
+      );
+      if (validationError) {
+        reportMutationError(validationError);
+        return false;
+      }
+      const now = new Date().toISOString();
+      const rule: RecurringRule = {
+        ...input,
+        id: crypto.randomUUID(),
+        createdAt: now,
+        updatedAt: now,
+      };
+      return commit({
+        ...current,
+        recurringRules: [rule, ...current.recurringRules],
+        recurringOccurrences: input.active
+          ? [
+              createRecurringOccurrence(rule, rule.nextDueDate, now),
+              ...current.recurringOccurrences,
+            ]
+          : current.recurringOccurrences,
+      });
+    },
+    [commit, reportMutationError],
+  );
+
+  const editRecurringRule = useCallback(
+    (ruleId: string, input: RecurringRuleInput): boolean => {
+      const current = dataRef.current;
+      if (!current) return false;
+      const existing = current.recurringRules.find((rule) => rule.id === ruleId);
+      if (!existing) return false;
+      const validationError = validateRecurringRuleInput(
+        input,
+        current.categories,
+      );
+      if (validationError) {
+        reportMutationError(validationError);
+        return false;
+      }
+      const now = new Date().toISOString();
+      const rule: RecurringRule = {
+        ...input,
+        id: existing.id,
+        createdAt: existing.createdAt,
+        updatedAt: now,
+      };
+      const pending = current.recurringOccurrences.find(
+        (occurrence) =>
+          occurrence.ruleId === ruleId && occurrence.status === "pending",
+      );
+      const occurrencesWithoutPending = pending
+        ? current.recurringOccurrences.filter(
+            (occurrence) => occurrence.id !== pending.id,
+          )
+        : current.recurringOccurrences;
+      const updatedPending: RecurringOccurrence | null = pending
+        ? {
+            ...pending,
+            id: `${ruleId}::${rule.nextDueDate}`,
+            scheduledDate: rule.nextDueDate,
+            date:
+              pending.date === pending.scheduledDate
+                ? rule.nextDueDate
+                : pending.date,
+            description: rule.description,
+            type: rule.type,
+            amountPaise:
+              pending.amountPaise === existing.amountPaise
+                ? rule.amountPaise
+                : pending.amountPaise,
+            categoryId: rule.categoryId,
+            updatedAt: now,
+          }
+        : null;
+      if (
+        updatedPending &&
+        occurrencesWithoutPending.some(
+          (occurrence) => occurrence.id === updatedPending.id,
+        )
+      ) {
+        reportMutationError(
+          "An occurrence already exists for that scheduled date. Choose a different next due date.",
+        );
+        return false;
+      }
+      return commit({
+        ...current,
+        recurringRules: current.recurringRules.map((item) =>
+          item.id === ruleId ? rule : item,
+        ),
+        recurringOccurrences: updatedPending
+          ? [updatedPending, ...occurrencesWithoutPending]
+          : occurrencesWithoutPending,
+      });
+    },
+    [commit, reportMutationError],
+  );
+
+  const setRecurringRuleActive = useCallback(
+    (ruleId: string, active: boolean): boolean => {
+      const current = dataRef.current;
+      if (!current) return false;
+      const existing = current.recurringRules.find((rule) => rule.id === ruleId);
+      if (!existing) return false;
+      if (active && existing.endDate && existing.nextDueDate > existing.endDate) {
+        reportMutationError(
+          "This schedule has passed its end date and cannot be resumed.",
+        );
+        return false;
+      }
+      const now = new Date().toISOString();
+      const rule = { ...existing, active, updatedAt: now };
+      const hasPending = current.recurringOccurrences.some(
+        (occurrence) =>
+          occurrence.ruleId === ruleId && occurrence.status === "pending",
+      );
+      return commit({
+        ...current,
+        recurringRules: current.recurringRules.map((item) =>
+          item.id === ruleId ? rule : item,
+        ),
+        recurringOccurrences:
+          active && !hasPending
+            ? [
+                createRecurringOccurrence(rule, rule.nextDueDate, now),
+                ...current.recurringOccurrences,
+              ]
+            : current.recurringOccurrences,
+      });
+    },
+    [commit, reportMutationError],
+  );
+
+  const deleteRecurringRule = useCallback(
+    (ruleId: string): boolean => {
+      const current = dataRef.current;
+      if (!current) return false;
+      if (!current.recurringRules.some((rule) => rule.id === ruleId)) {
+        return false;
+      }
+      return commit({
+        ...current,
+        recurringRules: current.recurringRules.filter(
+          (rule) => rule.id !== ruleId,
+        ),
+        recurringOccurrences: current.recurringOccurrences.filter(
+          (occurrence) =>
+            occurrence.ruleId !== ruleId ||
+            occurrence.status !== "pending",
+        ),
+      });
+    },
+    [commit],
+  );
+
+  const editRecurringOccurrence = useCallback(
+    (
+      occurrenceId: string,
+      input: { amountPaise: number; date: string },
+    ): boolean => {
+      const current = dataRef.current;
+      if (!current) return false;
+      try {
+        return commit(
+          updatePendingOccurrence(current, occurrenceId, input),
+        );
+      } catch (error) {
+        reportMutationError(
+          error instanceof Error
+            ? error.message
+            : "This occurrence could not be edited.",
+        );
+        return false;
+      }
+    },
+    [commit, reportMutationError],
+  );
+
+  const settleRecurringOccurrence = useCallback(
+    (
+      occurrenceId: string,
+      status: "confirmed" | "skipped",
+    ): boolean => {
+      const current = dataRef.current;
+      if (!current) return false;
+      try {
+        const next = settleOccurrenceInData(
+          current,
+          occurrenceId,
+          status,
+        );
+        return next === current || commit(next);
+      } catch (error) {
+        reportMutationError(
+          error instanceof Error
+            ? error.message
+            : "This occurrence could not be updated.",
+        );
+        return false;
+      }
+    },
+    [commit, reportMutationError],
   );
 
   const addCustomCategory = useCallback(
@@ -289,6 +509,15 @@ export function useFinanceDataState() {
     addTransaction,
     updateTransaction,
     deleteTransaction,
+    addRecurringRule,
+    editRecurringRule,
+    setRecurringRuleActive,
+    deleteRecurringRule,
+    editRecurringOccurrence,
+    confirmRecurringOccurrence: (occurrenceId: string) =>
+      settleRecurringOccurrence(occurrenceId, "confirmed"),
+    skipRecurringOccurrence: (occurrenceId: string) =>
+      settleRecurringOccurrence(occurrenceId, "skipped"),
     addCustomCategory,
     editCategory,
     addCategorizationRule,

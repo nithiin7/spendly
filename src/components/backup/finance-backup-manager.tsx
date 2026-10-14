@@ -23,6 +23,8 @@ const emptyFinanceData: FinanceData = {
   categories: [],
   rules: [],
   transactions: [],
+  recurringRules: [],
+  recurringOccurrences: [],
 };
 
 function getCategoryName(backup: FinanceBackup, categoryId: string): string {
@@ -131,8 +133,8 @@ export function FinanceBackupManager({
             Back up your data
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Export categories, rules, and income and expense transactions, or
-            restore them from a backup file.
+            Export categories, rules, transactions, recurring schedules, and
+            occurrence history, or restore them from a backup file.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
@@ -202,6 +204,10 @@ export function FinanceBackupManager({
                     {backup.data.categories.length} categories ·{" "}
                     {backup.data.rules.length} rules ·{" "}
                     {backup.data.transactions.length} transactions
+                    {" · "}
+                    {backup.data.recurringRules.length} recurring schedules
+                    {" · "}
+                    {backup.data.recurringOccurrences.length} occurrences
                   </p>
                   <div className="space-y-1 text-xs text-muted">
                     <p>
@@ -301,8 +307,9 @@ export function FinanceBackupManager({
                         Replace all current data
                       </span>
                       <span className="mt-0.5 block text-xs leading-5 text-muted">
-                        Replace categories, rules, and transactions saved in
-                        this browser with the contents of this backup.
+                        Replace categories, rules, transactions, recurring
+                        schedules, and occurrence history saved in this browser
+                        with the contents of this backup.
                       </span>
                     </span>
                   </label>
@@ -312,10 +319,11 @@ export function FinanceBackupManager({
                   <p className="rounded-xl border border-sage-200 bg-sage-100 px-3.5 py-3 text-sm text-forest-800">
                     Ready to {mode === "replace" ? "replace" : "merge"}:{" "}
                     {plan.added.categories} categories, {plan.added.rules}{" "}
-                    rules, and {plan.added.transactions} transactions will be
-                    added.
+                    rules, {plan.added.transactions} transactions,{" "}
+                    {plan.added.recurringRules} recurring schedules, and{" "}
+                    {plan.added.recurringOccurrences} occurrences will be added.
                     {mode === "replace" &&
-                      " This will remove all existing categories, rules, and transactions."}
+                      " This will remove all existing categories, rules, transactions, recurring schedules, and occurrence history."}
                     {" "}Nothing changes until you confirm below.
                   </p>
                 )}

@@ -1,9 +1,9 @@
-import { getDemoFinanceData } from "@/lib/demo-data";
+import { getDemoFinanceData } from "./demo-data.ts";
 import {
   defaultCategories,
   defaultCategoryRules,
-} from "@/lib/categories";
-import { isFinanceData } from "@/lib/finance-utils";
+} from "./categories.ts";
+import { isFinanceData } from "./finance-utils.ts";
 import type { FinanceData } from "@/types/finance";
 
 const storageKey = "spendly.finance.v1";
@@ -43,9 +43,13 @@ export function loadFinanceData(): FinanceData {
         ...transaction,
         categorySource: transaction.categorySource ?? "manual",
       })),
+      recurringRules: parsed.recurringRules ?? [],
+      recurringOccurrences: parsed.recurringOccurrences ?? [],
     };
     if (
       parsed.rules === undefined ||
+      parsed.recurringRules === undefined ||
+      parsed.recurringOccurrences === undefined ||
       parsed.categories.some(
         (category) => category.isFallback === undefined,
       ) ||
@@ -81,6 +85,8 @@ export function clearFinanceData(): FinanceData {
       keywords: [...rule.keywords],
     })),
     transactions: [],
+    recurringRules: [],
+    recurringOccurrences: [],
   };
   saveFinanceData(emptyData);
   return emptyData;

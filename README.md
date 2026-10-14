@@ -21,6 +21,7 @@ Spendly is a personal finance tracker built with Next.js, TypeScript, and Tailwi
 - **Overview (`/`)** — monthly balance, savings rate, spending breakdown, trends, and recent activity.
 - **Transactions (`/transactions`)** — search, filter, sort, add, edit, delete, and export entries.
 - **Income (`/income`)** — income transactions and monthly income history.
+- **Recurring (`/recurring`)** — manage scheduled income and expense occurrences, and confirm or skip them.
 - **Insights (`/insights`)** — month selection, comparisons, and spending analytics.
 - **Categories (`/categories`)** — categories and automatic categorization rules.
 - **Settings (`/settings`)** — local JSON backup and restore.
@@ -28,10 +29,11 @@ Spendly is a personal finance tracker built with Next.js, TypeScript, and Tailwi
 ## Features
 
 - 💸 Add, edit, delete, search, filter, sort, and export income and expense transactions.
+- 🔁 Schedule recurring income and expenses; upcoming entries do not affect actual totals until confirmed, and skipped or confirmed occurrences remain in history.
 - 🏷️ Organize transactions with custom categories and editable, rule-based suggestions.
 - 📊 Review monthly income, expenses, balance, savings rate, category totals, and six-month spending trends.
 - 🔒 Keep saved finance data in this browser using localStorage.
-- 💾 Export a versioned JSON backup of categories, rules, income, and expenses; preview and validate a backup before merging or replacing local data.
+- 💾 Export a versioned JSON backup of categories, rules, transactions, and recurring history; preview and validate a backup before merging or replacing local data.
 - ↩️ Clear saved data or restore the included sample data, with confirmation.
 
 ## Screenshot

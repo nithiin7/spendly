@@ -5,6 +5,7 @@ import {
   parseFinanceBackup,
   planFinanceRestore,
 } from "./finance-backup.ts";
+import { createRecurringOccurrence } from "./recurring-transactions.ts";
 import type { FinanceData } from "../types/finance.ts";
 
 const data: FinanceData = {
@@ -60,6 +61,8 @@ const data: FinanceData = {
       updatedAt: "2026-10-01T10:00:00.000Z",
     },
   ],
+  recurringRules: [],
+  recurringOccurrences: [],
 };
 
 function serializedBackup(financeData = data): string {
@@ -87,6 +90,51 @@ test("normalizes an omitted optional category source to the storage default", ()
   const parsed = parseFinanceBackup(serializedBackup(legacyData));
 
   assert.equal(parsed.data.transactions[0].categorySource, "manual");
+});
+
+test("round-trips recurring schedules and occurrence history in JSON backups", () => {
+  const now = "2026-10-14T10:00:00.000Z";
+  const recurringRule = {
+    id: "rent-monthly",
+    description: "Monthly rent",
+    type: "expense" as const,
+    amountPaise: 125000,
+    categoryId: "expenses",
+    frequency: "monthly" as const,
+    startDate: "2026-10-14",
+    nextDueDate: "2026-10-14",
+    active: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const recurringData: FinanceData = {
+    ...data,
+    recurringRules: [recurringRule],
+    recurringOccurrences: [
+      createRecurringOccurrence(recurringRule, recurringRule.nextDueDate, now),
+    ],
+  };
+
+  const parsed = parseFinanceBackup(serializedBackup(recurringData));
+  assert.deepEqual(parsed.data.recurringRules, [recurringRule]);
+  assert.deepEqual(
+    parsed.data.recurringOccurrences,
+    recurringData.recurringOccurrences,
+  );
+});
+
+test("accepts older JSON backups without recurring arrays", () => {
+  const backup = createFinanceBackup(data);
+  const oldData = {
+    categories: backup.data.categories,
+    rules: backup.data.rules,
+    transactions: backup.data.transactions,
+  };
+  const oldBackup = JSON.stringify({ ...backup, data: oldData });
+
+  const parsed = parseFinanceBackup(oldBackup);
+  assert.deepEqual(parsed.data.recurringRules, []);
+  assert.deepEqual(parsed.data.recurringOccurrences, []);
 });
 
 test("rejects malformed JSON and unsupported backup versions", () => {
@@ -166,7 +214,13 @@ test("merge deduplicates identical existing records and preserves references", (
   expected.transactions[1].categorySource = "manual";
 
   assert.deepEqual(plan.data, expected);
-  assert.deepEqual(plan.added, { categories: 0, rules: 0, transactions: 0 });
+  assert.deepEqual(plan.added, {
+    categories: 0,
+    rules: 0,
+    transactions: 0,
+    recurringRules: 0,
+    recurringOccurrences: 0,
+  });
   assert.equal(
     plan.data.transactions[0].categoryId,
     plan.data.categories[0].id,
@@ -190,7 +244,13 @@ test("merge adds new records without changing current data and rejects conflicts
 
   assert.deepEqual(current, original);
   assert.equal(plan.data.transactions.length, 3);
-  assert.deepEqual(plan.added, { categories: 0, rules: 0, transactions: 2 });
+  assert.deepEqual(plan.added, {
+    categories: 0,
+    rules: 0,
+    transactions: 2,
+    recurringRules: 0,
+    recurringOccurrences: 0,
+  });
 
   const conflicting = {
     ...data,
@@ -226,7 +286,13 @@ test("failed imports leave current data unchanged when merged totals overflow", 
 });
 
 test("replace plans the backup records without changing current data", () => {
-  const current: FinanceData = { categories: [], rules: [], transactions: [] };
+  const current: FinanceData = {
+    categories: [],
+    rules: [],
+    transactions: [],
+    recurringRules: [],
+    recurringOccurrences: [],
+  };
   const original = structuredClone(current);
   const plan = planFinanceRestore(current, data, "replace");
   const expected = structuredClone(data);
@@ -237,6 +303,8 @@ test("replace plans the backup records without changing current data", () => {
     categories: 2,
     rules: 1,
     transactions: 2,
+    recurringRules: 0,
+    recurringOccurrences: 0,
   });
   assert.deepEqual(current, original);
 });

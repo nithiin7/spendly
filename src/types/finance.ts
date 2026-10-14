@@ -41,10 +41,58 @@ export type TransactionInput = Omit<
   "id" | "createdAt" | "updatedAt"
 >;
 
+export type RecurrenceFrequency =
+  | "weekly"
+  | "monthly"
+  | "quarterly"
+  | "yearly"
+  | "custom";
+
+export type RecurringRule = {
+  id: string;
+  description: string;
+  type: TransactionType;
+  amountPaise: number;
+  categoryId: string;
+  frequency: RecurrenceFrequency;
+  interval?: number;
+  startDate: string;
+  nextDueDate: string;
+  endDate?: string;
+  active: boolean;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RecurringRuleInput = Omit<
+  RecurringRule,
+  "id" | "createdAt" | "updatedAt"
+>;
+
+export type RecurringOccurrenceStatus = "pending" | "confirmed" | "skipped";
+
+export type RecurringOccurrence = {
+  id: string;
+  ruleId: string;
+  scheduledDate: string;
+  date: string;
+  description: string;
+  type: TransactionType;
+  amountPaise: number;
+  categoryId: string;
+  status: RecurringOccurrenceStatus;
+  transactionId?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type FinanceData = {
   categories: Category[];
   rules: CategoryRule[];
   transactions: Transaction[];
+  recurringRules: RecurringRule[];
+  recurringOccurrences: RecurringOccurrence[];
 };
 
 export type SpendingMonth = {

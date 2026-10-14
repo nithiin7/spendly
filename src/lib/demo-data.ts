@@ -1,7 +1,7 @@
 import {
   defaultCategories,
   defaultCategoryRules,
-} from "@/lib/categories";
+} from "./categories.ts";
 import type { FinanceData } from "@/types/finance";
 
 function makeDemoFinanceData(): FinanceData {
@@ -107,6 +107,8 @@ function makeDemoFinanceData(): FinanceData {
         updatedAt: createdAt,
       },
     ],
+    recurringRules: [],
+    recurringOccurrences: [],
   };
 }
 
@@ -121,5 +123,7 @@ export function getDemoFinanceData(): FinanceData {
     transactions: demoFinanceData.transactions.map((transaction) => ({
       ...transaction,
     })),
+    recurringRules: [],
+    recurringOccurrences: [],
   };
 }

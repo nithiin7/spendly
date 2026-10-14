@@ -8,6 +8,10 @@ import type {
   Transaction,
   TransactionType,
 } from "@/types/finance";
+import {
+  isRecurringOccurrence,
+  isRecurringRule,
+} from "./recurring-transactions.ts";
 
 export function formatRupees(amountPaise: number): string {
   return new Intl.NumberFormat("en-IN", {
@@ -230,11 +234,22 @@ export function isFinanceData(value: unknown): value is FinanceData {
     return false;
   }
   const candidate = value as Record<string, unknown>;
-  if (!Array.isArray(candidate.categories) || !Array.isArray(candidate.transactions)) {
+  if (
+    !Array.isArray(candidate.categories) ||
+    !Array.isArray(candidate.transactions)
+  ) {
     return false;
   }
   const storedCategories: unknown[] = candidate.categories;
   const storedTransactions: unknown[] = candidate.transactions;
+  const storedRecurringRules: unknown[] = Array.isArray(candidate.recurringRules)
+    ? candidate.recurringRules
+    : [];
+  const storedRecurringOccurrences: unknown[] = Array.isArray(
+    candidate.recurringOccurrences,
+  )
+    ? candidate.recurringOccurrences
+    : [];
   const validCategories = storedCategories.every(
     (category: unknown) =>
       typeof category === "object" &&
@@ -306,7 +321,75 @@ export function isFinanceData(value: unknown): value is FinanceData {
     },
   );
 
-  return validCategories && validRules && validTransactions;
+  const validRecurringRules =
+    candidate.recurringRules === undefined ||
+    (Array.isArray(candidate.recurringRules) &&
+      storedRecurringRules.every(
+        (rule) =>
+          isRecurringRule(rule) &&
+          storedCategories.some(
+            (category) =>
+              typeof category === "object" &&
+              category !== null &&
+              (category as Category).id === rule.categoryId &&
+              (category as Category).type === rule.type,
+          ),
+      ));
+  const validRecurringOccurrences =
+    candidate.recurringOccurrences === undefined ||
+    (Array.isArray(candidate.recurringOccurrences) &&
+      storedRecurringOccurrences.every(
+        (occurrence) =>
+          isRecurringOccurrence(occurrence) &&
+          storedCategories.some(
+            (category) =>
+              typeof category === "object" &&
+              category !== null &&
+              (category as Category).id === occurrence.categoryId &&
+              (category as Category).type === occurrence.type,
+          ),
+      ));
+  const recurringIdsUnique =
+    new Set(
+      storedRecurringRules.map((rule) =>
+        isRecurringRule(rule) ? rule.id : "",
+      ),
+    )
+      .size === storedRecurringRules.length &&
+    new Set(
+      storedRecurringOccurrences.map((occurrence) =>
+        isRecurringOccurrence(occurrence) ? occurrence.id : "",
+      ),
+    ).size === storedRecurringOccurrences.length;
+  const occurrenceTransactionIdsUnique =
+    new Set(
+      storedRecurringOccurrences
+        .filter(
+          (occurrence) =>
+            typeof occurrence === "object" &&
+            occurrence !== null &&
+            typeof (occurrence as { transactionId?: unknown }).transactionId ===
+              "string",
+        )
+        .map((occurrence) => (occurrence as { transactionId: string }).transactionId),
+    ).size ===
+    storedRecurringOccurrences.filter(
+      (occurrence) =>
+        typeof occurrence === "object" &&
+        occurrence !== null &&
+        typeof (occurrence as { transactionId?: unknown }).transactionId ===
+          "string",
+    ).length;
+
+  return (
+    validCategories &&
+    validRules &&
+    validTransactions &&
+    validRecurringRules &&
+    validRecurringOccurrences &&
+    recurringIdsUnique &&
+    occurrenceTransactionIdsUnique
+  );
 }
 
 export function formatTransactionAmount(
