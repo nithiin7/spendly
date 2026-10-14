@@ -188,6 +188,19 @@ export type CashFlowMonth = {
   };
 };
 
+export type SavingsHealthMonth = {
+  label: string;
+  monthKey: string;
+  incomePaise: number;
+  expensePaise: number;
+  actualSavingsPaise: number;
+  spendingToIncomePercent: number | null;
+  actualSavingsRate: number | null;
+  plannedSavingsPaise: number | null;
+  plannedExpensePaise: number | null;
+  plannedExpenseSource: "overall-limit" | "category-allocations" | null;
+};
+
 export type SpendingCategory = {
   id: string;
   label: string;

@@ -8,6 +8,7 @@ import {
   getMonthlyFinancialSummary,
   getMonthlySpendingAnalysis,
   getPreviousMonthKey,
+  getSavingsHealthMonths,
   getSpendingMonths,
   parseRupeesToPaise,
   removeTransaction,
@@ -214,6 +215,79 @@ test("cash flow trends include empty months and cross calendar-year boundaries",
   assert.equal(months[0].change.incomePaise, 0);
   assert.equal(months[1].change.netPaise, 10000);
   assert.equal(months[2].change.netPaise, -10000);
+});
+
+test("tracks actual savings, savings rate, spending ratio, and planned savings", () => {
+  const months = getSavingsHealthMonths(
+    [
+      transaction("salary", "income", "2026-10-01", 500000),
+      transaction("rent", "expense", "2026-10-03", 200000),
+      transaction("groceries", "expense", "2026-10-04", 50000),
+    ],
+    [
+      {
+        id: "budget-overall",
+        year: 2026,
+        month: 10,
+        overallLimitPaise: 300000,
+        allocations: [{ categoryId: "category-1", amountPaise: 250000 }],
+        createdAt: "2026-10-01T00:00:00.000Z",
+        updatedAt: "2026-10-01T00:00:00.000Z",
+      },
+    ],
+    1,
+    "2026-10",
+  );
+
+  assert.deepEqual(months[0], {
+    monthKey: "2026-10",
+    label: "Oct 26",
+    incomePaise: 500000,
+    expensePaise: 250000,
+    actualSavingsPaise: 250000,
+    spendingToIncomePercent: 50,
+    actualSavingsRate: 50,
+    plannedSavingsPaise: 200000,
+    plannedExpensePaise: 300000,
+    plannedExpenseSource: "overall-limit",
+  });
+});
+
+test("uses category allocations as a plan and leaves planned savings unavailable without a plan", () => {
+  const months = getSavingsHealthMonths(
+    [
+      transaction("income", "income", "2026-09-01", 300000),
+      transaction("overspend", "expense", "2026-09-02", 350000),
+      transaction("no-income-expense", "expense", "2026-10-02", 10000),
+    ],
+    [
+      {
+        id: "category-plan",
+        year: 2026,
+        month: 9,
+        allocations: [
+          { categoryId: "category-1", amountPaise: 200000 },
+          { categoryId: "category-3", amountPaise: 50000 },
+        ],
+        createdAt: "2026-09-01T00:00:00.000Z",
+        updatedAt: "2026-09-01T00:00:00.000Z",
+      },
+    ],
+    2,
+    "2026-10",
+  );
+
+  assert.equal(months[0].plannedExpenseSource, "category-allocations");
+  assert.equal(months[0].plannedExpensePaise, 250000);
+  assert.equal(months[0].plannedSavingsPaise, 50000);
+  assert.equal(months[0].actualSavingsPaise, -50000);
+  assert.equal(months[0].actualSavingsRate, -((50000 / 300000) * 100));
+  assert.equal(months[0].spendingToIncomePercent, (350000 / 300000) * 100);
+  assert.equal(months[1].incomePaise, 0);
+  assert.equal(months[1].spendingToIncomePercent, null);
+  assert.equal(months[1].actualSavingsRate, null);
+  assert.equal(months[1].plannedSavingsPaise, null);
+  assert.equal(months[1].plannedExpenseSource, null);
 });
 
 test("analyzes category changes, recurring fixed expenses, and largest transactions", () => {

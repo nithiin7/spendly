@@ -6,8 +6,10 @@ import type {
   MonthlySpendingAnalysis,
   MonthlyFinancialSummary,
   RecurringOccurrence,
+  SavingsHealthMonth,
   SpendingCategory,
   SpendingMonth,
+  MonthlyBudget,
   Transaction,
   TransactionType,
 } from "@/types/finance";
@@ -221,6 +223,90 @@ export function getCashFlowMonths(
         expensePaise: totals.expensePaise - previousTotals.expensePaise,
         netPaise: netPaise - previousNetPaise,
       },
+    };
+  });
+}
+
+export function getSavingsHealthMonths(
+  transactions: Transaction[],
+  budgets: MonthlyBudget[],
+  count = 6,
+  endMonthKey = getCurrentMonthKey(),
+): SavingsHealthMonth[] {
+  const [year, month] = endMonthKey.split("-").map(Number);
+  const totalsByMonth = new Map<
+    string,
+    { incomePaise: number; expensePaise: number }
+  >();
+  for (const transaction of transactions) {
+    const monthKey = dateToMonthKey(transaction.date);
+    const totals = totalsByMonth.get(monthKey) ?? {
+      incomePaise: 0,
+      expensePaise: 0,
+    };
+    totals[
+      transaction.type === "income" ? "incomePaise" : "expensePaise"
+    ] += transaction.amountPaise;
+    totalsByMonth.set(monthKey, totals);
+  }
+
+  const budgetsByMonth = new Map(
+    budgets.map((budget) => [
+      `${budget.year}-${String(budget.month).padStart(2, "0")}`,
+      budget,
+    ]),
+  );
+
+  return Array.from({ length: count }, (_, index) => {
+    const monthDate = new Date(Date.UTC(year, month - count + index, 1));
+    const monthKey = `${monthDate.getUTCFullYear()}-${String(monthDate.getUTCMonth() + 1).padStart(2, "0")}`;
+    const totals = totalsByMonth.get(monthKey) ?? {
+      incomePaise: 0,
+      expensePaise: 0,
+    };
+    const budget = budgetsByMonth.get(monthKey);
+    const plannedExpenseSource = budget?.overallLimitPaise !== undefined
+      ? "overall-limit"
+      : budget && budget.allocations.length > 0
+        ? "category-allocations"
+        : null;
+    const plannedExpensePaise =
+      plannedExpenseSource === "overall-limit"
+        ? budget!.overallLimitPaise!
+        : plannedExpenseSource === "category-allocations"
+          ? budget!.allocations.reduce(
+              (sum, allocation) => sum + allocation.amountPaise,
+              0,
+            )
+          : null;
+    const actualSavingsPaise = totals.incomePaise - totals.expensePaise;
+    const spendingToIncomePercent =
+      totals.incomePaise > 0
+        ? (totals.expensePaise / totals.incomePaise) * 100
+        : null;
+    const actualSavingsRate =
+      totals.incomePaise > 0
+        ? (actualSavingsPaise / totals.incomePaise) * 100
+        : null;
+
+    return {
+      monthKey,
+      label: new Intl.DateTimeFormat("en-IN", {
+        month: "short",
+        year: "2-digit",
+        timeZone: "UTC",
+      }).format(monthDate),
+      incomePaise: totals.incomePaise,
+      expensePaise: totals.expensePaise,
+      actualSavingsPaise,
+      spendingToIncomePercent,
+      actualSavingsRate,
+      plannedSavingsPaise:
+        plannedExpensePaise === null
+          ? null
+          : totals.incomePaise - plannedExpensePaise,
+      plannedExpensePaise,
+      plannedExpenseSource,
     };
   });
 }
