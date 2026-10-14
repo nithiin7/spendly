@@ -6,6 +6,7 @@ import type {
   CategoryBudgetAllocation,
   MonthlyBudget,
   MonthlyBudgetAnalytics,
+  RepeatedBudgetOverrun,
   Transaction,
 } from "@/types/finance";
 
@@ -143,6 +144,89 @@ export function calculateMonthlyBudgetAnalytics(
     ),
     overBudgetCategoryCount: overBudgetCategories.length,
   };
+}
+
+export function getRepeatedBudgetOverruns(
+  transactions: Transaction[],
+  categories: Category[],
+  budgets: MonthlyBudget[],
+  endMonthKey: string,
+  count = 6,
+): RepeatedBudgetOverrun[] {
+  if (!isValidMonthKey(endMonthKey)) {
+    throw new Error("Choose a valid month for budget calculations.");
+  }
+
+  const [year, month] = endMonthKey.split("-").map(Number);
+  const budgetByMonth = new Map(
+    budgets.map((budget) => [monthlyBudgetMonthKey(budget), budget]),
+  );
+  const categoryById = new Map(
+    categories
+      .filter((category) => category.type === "expense")
+      .map((category) => [category.id, category]),
+  );
+  const categoryPerformance = new Map<
+    string,
+    { budgetedMonths: number; overBudgetMonths: number }
+  >();
+
+  for (let index = 0; index < count; index += 1) {
+    const date = new Date(Date.UTC(year, month - count + index, 1));
+    const monthKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+    const budget = budgetByMonth.get(monthKey);
+    if (!budget) continue;
+
+    const spentByCategory = new Map<string, number>();
+    for (const transaction of transactions) {
+      if (
+        transaction.type === "expense" &&
+        transaction.date.slice(0, 7) === monthKey
+      ) {
+        spentByCategory.set(
+          transaction.categoryId,
+          (spentByCategory.get(transaction.categoryId) ?? 0) +
+            transaction.amountPaise,
+        );
+      }
+    }
+
+    for (const allocation of budget.allocations) {
+      const category = categoryById.get(allocation.categoryId);
+      if (!category) continue;
+      const performance = categoryPerformance.get(category.id) ?? {
+        budgetedMonths: 0,
+        overBudgetMonths: 0,
+      };
+      performance.budgetedMonths += 1;
+      if (
+        (spentByCategory.get(category.id) ?? 0) > allocation.amountPaise
+      ) {
+        performance.overBudgetMonths += 1;
+      }
+      categoryPerformance.set(category.id, performance);
+    }
+  }
+
+  return [...categoryPerformance.entries()]
+    .filter(([, performance]) => performance.overBudgetMonths >= 2)
+    .map(([categoryId, performance]) => {
+      const category = categoryById.get(categoryId)!;
+      return {
+        categoryId,
+        label: category.name,
+        color: category.color,
+        ...performance,
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.overBudgetMonths - left.overBudgetMonths ||
+        right.overBudgetMonths * left.budgetedMonths -
+          left.overBudgetMonths * right.budgetedMonths ||
+        right.budgetedMonths - left.budgetedMonths ||
+        left.label.localeCompare(right.label),
+    );
 }
 
 export function isMonthlyBudget(value: unknown): value is MonthlyBudget {

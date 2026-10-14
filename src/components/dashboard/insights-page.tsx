@@ -5,11 +5,11 @@ import { CalendarPicker } from "@/components/ui/calendar-picker";
 import { FinancePageState } from "@/components/finance/finance-page-state";
 import { PageEntrance } from "@/components/ui/page-entrance";
 import { CategoryBreakdown } from "@/components/dashboard/category-breakdown";
+import { BudgetPlannerPerformance } from "@/components/dashboard/budget-planner-performance";
 import { CashFlowTrends } from "@/components/dashboard/cash-flow-trends";
 import { SpendingAnalysis } from "@/components/dashboard/spending-analysis";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
 import { useFinanceData } from "@/hooks/finance-data-provider";
-import Link from "next/link";
 import {
   formatRupees,
   getCurrentMonthKey,
@@ -19,7 +19,10 @@ import {
   getPreviousMonthKey,
   getSpendingMonths,
 } from "@/lib/finance-utils";
-import { calculateMonthlyBudgetAnalytics } from "@/lib/monthly-budgets";
+import {
+  calculateMonthlyBudgetAnalytics,
+  getRepeatedBudgetOverruns,
+} from "@/lib/monthly-budgets";
 
 const subscribeToMonthChanges = () => () => {};
 
@@ -63,6 +66,12 @@ export function InsightsPage() {
     transactions,
     categories,
     monthlyBudget,
+    monthKey,
+  );
+  const repeatedBudgetOverruns = getRepeatedBudgetOverruns(
+    transactions,
+    categories,
+    finance.data.budgets,
     monthKey,
   );
   const previousMonthKey = getPreviousMonthKey(monthKey);
@@ -170,123 +179,13 @@ export function InsightsPage() {
         totalExpensePaise={summary.expensePaise}
       />
 
-      <section
-        aria-labelledby="budget-comparison-heading"
-        className="rounded-2xl border border-border bg-white p-5 shadow-card sm:p-6"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3
-              className="text-base font-semibold text-ink"
-              id="budget-comparison-heading"
-            >
-              Budget versus actual — {monthLabel}
-            </h3>
-            <p className="mt-1 text-sm text-muted">
-              Actuals include all confirmed expenses, including categories
-              without a budget.
-            </p>
-          </div>
-          <Link className="button-secondary" href="/budgets">
-            Manage budgets
-          </Link>
-        </div>
-        {!monthlyBudget ? (
-          <p className="mt-5 rounded-xl border border-dashed border-border bg-canvas/50 px-4 py-5 text-center text-sm text-muted">
-            No budget is set for this month. Create one to compare your planned
-            limits with actual spending.
-          </p>
-        ) : (
-          <div className="mt-5 space-y-5">
-            {budgetAnalytics.overall ? (
-              <div className="rounded-xl border border-border p-4">
-                <div className="flex flex-wrap justify-between gap-2 text-sm">
-                  <span className="font-medium text-ink">Overall</span>
-                  <span className="text-muted" data-financial-value>
-                    {formatMoney(budgetAnalytics.overall.spentPaise)} actual
-                    {" / "}
-                    {formatMoney(budgetAnalytics.overall.budgetPaise)} budget
-                  </span>
-                </div>
-                <div
-                  aria-label={`Overall budget ${budgetAnalytics.overall.utilizationPercent.toLocaleString("en-IN", { maximumFractionDigits: 1 })}% used`}
-                  aria-valuemax={100}
-                  aria-valuemin={0}
-                  aria-valuenow={Math.min(100, Math.max(0, budgetAnalytics.overall.utilizationPercent))}
-                  aria-valuetext={`${budgetAnalytics.overall.utilizationPercent.toLocaleString("en-IN", { maximumFractionDigits: 1 })}% used`}
-                  className="mt-3 h-2 overflow-hidden rounded-full bg-canvas"
-                  role="progressbar"
-                >
-                  <div
-                    className={`h-full rounded-full ${
-                      budgetAnalytics.overall.status === "over"
-                        ? "bg-red-600"
-                        : budgetAnalytics.overall.status === "approaching"
-                          ? "bg-amber-500"
-                          : "bg-forest-700"
-                    }`}
-                    style={{
-                      width: `${Math.min(100, Math.max(0, budgetAnalytics.overall.utilizationPercent))}%`,
-                    }}
-                  />
-                </div>
-                <p className="mt-2 text-xs text-muted" data-financial-value>
-                  {budgetAnalytics.overall.status === "over"
-                    ? `${formatMoney(Math.abs(budgetAnalytics.overall.remainingPaise))} over budget`
-                    : `${formatMoney(budgetAnalytics.overall.remainingPaise)} remaining`}
-                </p>
-              </div>
-            ) : (
-              <p className="rounded-xl bg-canvas/60 px-4 py-3 text-sm text-muted">
-                No overall limit is set for this month.
-              </p>
-            )}
-            <div className="grid gap-3 sm:grid-cols-2">
-              {budgetAnalytics.categories
-                .filter((category) => category.budgetPaise !== null)
-                .map((category) => (
-                  <article
-                    className="rounded-xl border border-border p-4"
-                    key={category.categoryId}
-                  >
-                    <div className="flex flex-wrap justify-between gap-2 text-sm">
-                      <span className="font-medium text-ink">{category.label}</span>
-                      <span className="text-muted" data-financial-value>
-                        {formatMoney(category.spentPaise)} /{" "}
-                        {formatMoney(category.budgetPaise!)}
-                      </span>
-                    </div>
-                    <div
-                      aria-label={`${category.label} budget ${category.utilizationPercent?.toLocaleString("en-IN", { maximumFractionDigits: 1 }) ?? 0}% used`}
-                      aria-valuemax={100}
-                      aria-valuemin={0}
-                      aria-valuenow={Math.min(100, Math.max(0, category.utilizationPercent ?? 0))}
-                      className="mt-3 h-2 overflow-hidden rounded-full bg-canvas"
-                      role="progressbar"
-                    >
-                      <div
-                        className={`h-full rounded-full ${
-                          category.status === "over"
-                            ? "bg-red-600"
-                            : category.status === "approaching"
-                              ? "bg-amber-500"
-                              : "bg-forest-700"
-                        }`}
-                        style={{
-                          width: `${Math.min(100, Math.max(0, category.utilizationPercent ?? 0))}%`,
-                        }}
-                      />
-                    </div>
-                  </article>
-                ))}
-            </div>
-            <p className="text-sm text-muted" data-financial-value>
-              {formatMoney(budgetAnalytics.unbudgetedExpensePaise)} spent in
-              categories without allocations.
-            </p>
-          </div>
-        )}
-      </section>
+      <BudgetPlannerPerformance
+        analytics={budgetAnalytics}
+        budget={monthlyBudget}
+        currency={currency}
+        monthLabel={monthLabel}
+        repeatedOverruns={repeatedBudgetOverruns}
+      />
 
       <section className="rounded-2xl border border-border bg-white p-5 shadow-card sm:p-6">
         <h3 className="text-base font-semibold text-ink">

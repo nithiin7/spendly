@@ -161,6 +161,14 @@ export type MonthlyBudgetAnalytics = {
   overBudgetCategoryCount: number;
 };
 
+export type RepeatedBudgetOverrun = {
+  categoryId: string;
+  label: string;
+  color: string;
+  overBudgetMonths: number;
+  budgetedMonths: number;
+};
+
 export type SpendingMonth = {
   label: string;
   monthKey: string;

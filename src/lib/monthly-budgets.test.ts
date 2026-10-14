@@ -4,6 +4,7 @@ import { defaultCategories } from "./categories.ts";
 import {
   calculateMonthlyBudgetAnalytics,
   copyPreviousMonthAllocations,
+  getRepeatedBudgetOverruns,
   validateMonthlyBudgets,
 } from "./monthly-budgets.ts";
 import { getMonthlyFinancialSummary } from "./finance-utils.ts";
@@ -214,4 +215,106 @@ test("budget and overview expense totals update from the same transaction source
   assert.equal(after.overall?.spentPaise, insightSummary.expensePaise);
   assert.equal(after.categories[0].spentPaise, 9000);
   assert.equal(after.overBudgetCategories[0].categoryId, "category-1");
+});
+
+test("identifies categories over their limits repeatedly across budgeted months", () => {
+  const budgets = [
+    monthlyBudget({
+      id: "budget-2026-06",
+      year: 2026,
+      month: 6,
+      allocations: [
+        { categoryId: "category-1", amountPaise: 10000 },
+        { categoryId: "category-3", amountPaise: 5000 },
+      ],
+    }),
+    monthlyBudget({
+      id: "budget-2026-07",
+      year: 2026,
+      month: 7,
+      allocations: [{ categoryId: "category-1", amountPaise: 10000 }],
+    }),
+    monthlyBudget({
+      id: "budget-2026-08",
+      year: 2026,
+      month: 8,
+      allocations: [
+        { categoryId: "category-1", amountPaise: 10000 },
+        { categoryId: "category-3", amountPaise: 5000 },
+      ],
+    }),
+  ];
+  const results = getRepeatedBudgetOverruns(
+    [
+      transaction("rent-jun", "expense", "2026-06-10", 11000, "category-1"),
+      transaction("groceries-jun", "expense", "2026-06-10", 6000, "category-3"),
+      transaction("rent-jul", "expense", "2026-07-10", 12000, "category-1"),
+      transaction("rent-aug", "expense", "2026-08-10", 10000, "category-1"),
+      transaction("groceries-aug", "expense", "2026-08-10", 7000, "category-3"),
+      transaction("unbudgeted", "expense", "2026-08-10", 90000, "category-4"),
+    ],
+    defaultCategories,
+    budgets,
+    "2026-08",
+  );
+
+  assert.deepEqual(
+    results.map(({ categoryId, overBudgetMonths, budgetedMonths }) => [
+      categoryId,
+      overBudgetMonths,
+      budgetedMonths,
+    ]),
+    [
+      ["category-3", 2, 2],
+      ["category-1", 2, 3],
+    ],
+  );
+});
+
+test("repeated overruns use the selected six-month window and require strict overspending", () => {
+  const budgets = [
+    monthlyBudget({
+      id: "budget-2025-12",
+      year: 2025,
+      month: 12,
+      allocations: [{ categoryId: "category-1", amountPaise: 10000 }],
+    }),
+    monthlyBudget({
+      id: "budget-2026-01",
+      year: 2026,
+      month: 1,
+      allocations: [{ categoryId: "category-1", amountPaise: 10000 }],
+    }),
+    monthlyBudget({
+      id: "budget-2026-02",
+      year: 2026,
+      month: 2,
+      allocations: [{ categoryId: "category-1", amountPaise: 10000 }],
+    }),
+  ];
+  const transactions = [
+    transaction("outside-window", "expense", "2025-12-10", 15000),
+    transaction("equal-limit", "expense", "2026-01-10", 10000),
+    transaction("single-overrun", "expense", "2026-02-10", 10001),
+  ];
+
+  assert.deepEqual(
+    getRepeatedBudgetOverruns(
+      transactions,
+      defaultCategories,
+      budgets,
+      "2026-06",
+    ),
+    [],
+  );
+  assert.throws(
+    () =>
+      getRepeatedBudgetOverruns(
+        transactions,
+        defaultCategories,
+        budgets,
+        "2026-13",
+      ),
+    /valid month/,
+  );
 });
