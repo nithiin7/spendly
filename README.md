@@ -26,7 +26,7 @@ Spendly is a personal finance tracker built with Next.js, TypeScript, and Tailwi
 
 ## Screenshot
 
-> **Screenshot placeholder:** No application screenshot is checked in yet. Replace this note with a real screenshot captured from the running app.
+![Spendly dashboard](./public/spendly.png)
 
 ## Technology
 
