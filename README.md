@@ -25,7 +25,9 @@ Spendly helps you keep your money organized without overcomplicating it. Use it 
 - Budgets: set monthly overall and category limits and compare them with actual spending
 - Insights: compare month-over-month trends and see category breakdowns over time
 - Categories and rules: create custom categories and automate tagging with matching rules
+- Profile: set a username and private profile photo from the sidebar account section
 - Settings and backups: change currency/date preferences, export JSON backups, and restore data safely
+- Accessible route loading, recovery, and branded 404 pages
 - Private/local-first: keep your finance data on the current device and migrate or back up when needed
 
 ## Main sections
@@ -37,6 +39,7 @@ Spendly helps you keep your money organized without overcomplicating it. Use it 
 - Budgets — compare planned vs actual spending by month and category
 - Insights — review trends, spending breakdowns, and comparisons
 - Categories — organize transactions and create category rules
+- Profile — update your username and profile photo by selecting your sidebar account
 - Settings — backup, restore, and customize your display preferences
 
 ## How to use it
@@ -110,7 +113,7 @@ Then sign in or create an account at `/auth/sign-in`.
 
 ## Privacy
 
-Spendly is designed to keep your financial data personal. If you are signed in, your data is stored in your private Supabase account. If you are not signed in, it stays in the browser. You can still export backups and import or migrate local data safely from Settings.
+Spendly is designed to keep your financial data personal. If you are signed in, your data is stored in your private Supabase account. Profile photos are kept in a private Supabase Storage bucket and are only accessible to their owner. If you are not signed in, your finance data stays in the browser. You can still export backups and import or migrate local data safely from Settings.
 
 ## Screenshot
 

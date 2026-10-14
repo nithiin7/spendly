@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -33,6 +34,11 @@ const navigation = [
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
+type AccountUser = {
+  email?: string;
+  user_metadata: Record<string, unknown>;
+};
+
 export const pageTitles: Record<string, string> = {
   "/": "Overview",
   "/transactions": "Transactions",
@@ -42,6 +48,7 @@ export const pageTitles: Record<string, string> = {
   "/insights": "Insights",
   "/categories": "Categories",
   "/settings": "Settings",
+  "/profile": "Profile",
 };
 
 function Brand() {
@@ -90,29 +97,58 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function AccountIdentity() {
+function AccountIdentity({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
+    let accountRequest = 0;
     let unsubscribe = () => {};
     if (!getSupabasePublicConfig()) return;
 
     const supabase = createClient();
+    async function setAccount(user: AccountUser | null) {
+      if (!active) return;
+      const request = ++accountRequest;
+      setEmail(user?.email ?? null);
+      setUsername(
+        typeof user?.user_metadata.username === "string"
+          ? user.user_metadata.username
+          : null,
+      );
+      const avatarPath = user?.user_metadata.avatar_path;
+      if (typeof avatarPath !== "string") {
+        setAvatarUrl(null);
+        return;
+      }
+      const { data: avatar, error: avatarError } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(avatarPath, 60 * 60 * 24 * 7);
+      if (!active || request !== accountRequest) return;
+      if (avatarError) {
+        setError(`Profile photo could not be loaded: ${avatarError.message}`);
+        setAvatarUrl(null);
+      } else {
+        setAvatarUrl(avatar.signedUrl);
+      }
+    }
+
     void supabase.auth.getUser().then(
-      ({ data, error: authError }) => {
+      async ({ data, error: authError }) => {
         if (!active) return;
         if (authError) setError("Account status could not be loaded.");
-        else setEmail(data.user?.email ?? null);
+        else await setAccount(data.user);
       },
       () => {
         if (active) setError("Account status could not be loaded.");
       },
     );
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setEmail(session?.user.email ?? null);
+      window.setTimeout(() => void setAccount(session?.user ?? null), 0);
     });
     unsubscribe = () => data.subscription.unsubscribe();
 
@@ -139,6 +175,7 @@ function AccountIdentity() {
       <Link
         className="rounded-lg px-3 py-2 text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white"
         href="/auth/sign-in"
+        onClick={onNavigate}
       >
         Sign in to sync
       </Link>
@@ -147,17 +184,37 @@ function AccountIdentity() {
 
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <div
-        aria-hidden="true"
-        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sage-300 text-xs font-semibold uppercase text-forest-950"
+      <Link
+        aria-label={`Open profile for ${email}`}
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sage-300"
+        href="/profile"
+        onClick={onNavigate}
       >
-        {email.slice(0, 2)}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{email}</p>
-        <p className="truncate text-xs text-white/45">Private cloud account</p>
-        {error && <p className="mt-1 text-xs text-red-200" role="alert">{error}</p>}
-      </div>
+        {avatarUrl ? (
+          <Image
+            alt=""
+            className="size-9 shrink-0 rounded-full object-cover"
+            height={36}
+            src={avatarUrl}
+            unoptimized
+            width={36}
+          />
+        ) : (
+          <span
+            aria-hidden="true"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sage-300 text-xs font-semibold uppercase text-forest-950"
+          >
+            {(username ?? email).slice(0, 2)}
+          </span>
+        )}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{username ?? email}</span>
+          <span className="block truncate text-xs text-white/45">
+            {username ? email : "Private cloud account"}
+          </span>
+          {error && <span className="mt-1 block text-xs text-red-200" role="alert">{error}</span>}
+        </span>
+      </Link>
       <button
         aria-label="Sign out"
         className="flex size-9 shrink-0 items-center justify-center rounded-lg text-white/65 hover:bg-white/10 hover:text-white"
@@ -225,7 +282,7 @@ export function AppSidebar({
               <motion.aside
                 aria-label="Mobile navigation drawer"
                 animate={{ x: 0 }}
-                className="relative h-full w-[min(82vw,320px)] bg-forest-950 px-5 py-6 text-white shadow-2xl"
+                className="relative flex h-full w-[min(82vw,320px)] flex-col bg-forest-950 px-5 py-6 text-white shadow-2xl"
                 exit={{ x: -24 }}
                 id="mobile-navigation"
                 initial={{ x: -24 }}
@@ -246,6 +303,9 @@ export function AppSidebar({
                   Workspace
                 </p>
                 <NavigationLinks onNavigate={() => setIsOpen(false)} />
+                <div className="mt-auto border-t border-white/10 px-2 pt-5">
+                  <AccountIdentity onNavigate={() => setIsOpen(false)} />
+                </div>
               </motion.aside>
             </motion.div>
           )}
