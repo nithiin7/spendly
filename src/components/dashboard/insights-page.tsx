@@ -7,6 +7,7 @@ import { PageEntrance } from "@/components/ui/page-entrance";
 import { CategoryBreakdown } from "@/components/dashboard/category-breakdown";
 import { BudgetPlannerPerformance } from "@/components/dashboard/budget-planner-performance";
 import { CashFlowTrends } from "@/components/dashboard/cash-flow-trends";
+import { ActionableObservations } from "@/components/dashboard/actionable-observations";
 import { SavingsHealth } from "@/components/dashboard/savings-health";
 import { SpendingAnalysis } from "@/components/dashboard/spending-analysis";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
@@ -25,6 +26,7 @@ import {
   calculateMonthlyBudgetAnalytics,
   getRepeatedBudgetOverruns,
 } from "@/lib/monthly-budgets";
+import { getActionableObservations } from "@/lib/actionable-observations";
 
 const subscribeToMonthChanges = () => () => {};
 
@@ -33,6 +35,7 @@ const insightTabs = [
   { id: "spending", label: "Spending analysis" },
   { id: "budget", label: "Budget & planner" },
   { id: "savings", label: "Savings & health" },
+  { id: "observations", label: "Observations" },
 ] as const;
 
 type InsightTabId = (typeof insightTabs)[number]["id"];
@@ -86,6 +89,15 @@ export function InsightsPage() {
     categories,
     finance.data.budgets,
     monthKey,
+  );
+  const observations = getActionableObservations(
+    transactions,
+    categories,
+    recurringOccurrences,
+    finance.data.recurringRules,
+    monthlyBudget,
+    monthKey,
+    currency,
   );
   const previousMonthKey = getPreviousMonthKey(monthKey);
   const previousMonth = getMonthlyFinancialSummary(
@@ -281,6 +293,12 @@ export function InsightsPage() {
           )}
           {activeTab === "savings" && (
             <SavingsHealth currency={currency} months={savingsHealthMonths} />
+          )}
+          {activeTab === "observations" && (
+            <ActionableObservations
+              monthLabel={monthLabel}
+              observations={observations}
+            />
           )}
         </div>
       </div>
