@@ -40,6 +40,7 @@ Use the scripts defined in `package.json`:
 ```bash
 npm run dev
 npm run lint
+npm run typecheck
 npm test
 npm run build
 ```

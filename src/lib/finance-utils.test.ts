@@ -8,6 +8,7 @@ import {
   getPreviousMonthKey,
   getSpendingMonths,
   parseRupeesToPaise,
+  removeTransaction,
 } from "./finance-utils.ts";
 import type { Transaction } from "../types/finance.ts";
 
@@ -99,6 +100,33 @@ test("handles months with no transactions or no previous-month expenses", () => 
   assert.equal(summary.expenseChangePaise, 0);
   assert.equal(summary.expenseChangePercent, null);
   assert.deepEqual(summary.categoryTotals, []);
+});
+
+test("deleted transactions no longer affect monthly totals or category totals", () => {
+  const transactions = [
+    transaction("salary", "income", "2026-10-03", 300000),
+    transaction("deleted rent", "expense", "2026-10-04", 120000),
+    transaction("groceries", "expense", "2026-10-05", 25000, "category-3"),
+  ];
+  const remaining = removeTransaction(transactions, "deleted rent");
+  const summary = getMonthlyFinancialSummary(
+    remaining,
+    defaultCategories,
+    "2026-10",
+  );
+
+  assert.deepEqual(
+    remaining.map(({ id }) => id),
+    ["salary", "groceries"],
+  );
+  assert.equal(summary.incomePaise, 300000);
+  assert.equal(summary.expensePaise, 25000);
+  assert.equal(summary.balancePaise, 275000);
+  assert.equal(summary.transactionCount, 2);
+  assert.deepEqual(
+    summary.categoryTotals.map(({ id, amountPaise }) => [id, amountPaise]),
+    [["category-3", 25000]],
+  );
 });
 
 test("generates a six-month trend ending at the selected month across year boundaries", () => {

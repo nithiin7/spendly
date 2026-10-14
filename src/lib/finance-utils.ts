@@ -64,6 +64,13 @@ export function getMonthlyTotals(
   };
 }
 
+export function removeTransaction(
+  transactions: Transaction[],
+  transactionId: string,
+): Transaction[] {
+  return transactions.filter((transaction) => transaction.id !== transactionId);
+}
+
 export function getMonthlyFinancialSummary(
   transactions: Transaction[],
   categories: Category[],

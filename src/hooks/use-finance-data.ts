@@ -11,6 +11,7 @@ import {
   removeCategoryRule,
   updateCategoryRule,
 } from "@/lib/categorization";
+import { removeTransaction } from "@/lib/finance-utils";
 import {
   clearFinanceData,
   loadFinanceData,
@@ -120,9 +121,7 @@ export function useFinanceData() {
       if (!current) return false;
       return commit({
         ...current,
-        transactions: current.transactions.filter(
-          (transaction) => transaction.id !== id,
-        ),
+        transactions: removeTransaction(current.transactions, id),
       });
     },
     [commit],

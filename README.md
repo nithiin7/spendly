@@ -41,7 +41,7 @@ npm ci
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). To check the project, run `npm run lint`, `npm test`, and `npm run build`.
+Open [http://localhost:3000](http://localhost:3000). To check the project, run `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`. GitHub Actions runs these checks on pushes and pull requests.
 
 ## Data and privacy
 
