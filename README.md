@@ -14,7 +14,7 @@ A private, browser-based finance app for tracking income, expenses, and spending
 
 </div>
 
-Spendly is a personal finance tracker built with Next.js, TypeScript, and Tailwind CSS. Manage transactions and categories, review monthly summaries and charts, and export your records as CSV. No account or server sync is configured.
+Spendly is a personal finance tracker built with Next.js, TypeScript, Tailwind CSS, and Supabase. Manage transactions and categories, review monthly summaries and charts, and export your records as CSV. Authenticated records are stored in a user-scoped Supabase database; the existing browser data remains available for migration.
 
 ## Pages
 
@@ -25,7 +25,7 @@ Spendly is a personal finance tracker built with Next.js, TypeScript, and Tailwi
 - **Budgets (`/budgets`)** — set monthly overall and optional category spending limits, review confirmed actuals, and copy category allocations from the previous month.
 - **Insights (`/insights`)** — month selection, comparisons, and spending analytics.
 - **Categories (`/categories`)** — categories and automatic categorization rules.
-- **Settings (`/settings`)** — local JSON backup and restore.
+- **Settings (`/settings`)** — JSON backup and restore, and local-data migration.
 
 ## Features
 
@@ -34,7 +34,7 @@ Spendly is a personal finance tracker built with Next.js, TypeScript, and Tailwi
 - 🏷️ Organize transactions with custom categories and editable, rule-based suggestions.
 - 📊 Review monthly income, expenses, balance, savings rate, category totals, and six-month spending trends.
 - 🎯 Compare confirmed expenses with monthly and category budgets, including spending that has no category allocation.
-- 🔒 Keep saved finance data in this browser using localStorage.
+- 🔒 Keep finance records private to the signed-in account using Supabase Auth and PostgreSQL row-level security.
 - 💾 Export a versioned JSON backup of categories, rules, transactions, recurring history, and monthly budgets; preview and validate a backup before merging or replacing local data.
 - ↩️ Clear saved data or restore the included sample data, with confirmation.
 
@@ -57,10 +57,30 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). To check the project, run `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`. GitHub Actions runs these checks on pushes and pull requests.
 
+## Supabase setup
+
+1. Create a Supabase project and configure the Site URL and allowed redirect URLs in **Authentication → URL Configuration**. Include `http://localhost:3000/**` and your deployed app URL.
+2. In **Authentication → Providers → Email**, enable email/password sign-in and email verification. Configure the verification and password recovery email templates to return users to the app.
+3. Copy `.env.example` to `.env.local`. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from the project's Connect/API settings. A publishable key is intended for browser use; never use a secret/service-role key in this app.
+4. Apply both versioned migrations, in order: `20261014000000_finance_schema.sql` and `20261014000001_finance_migrations.sql`. With the Supabase CLI, run `supabase link --project-ref PROJECT_REF` and then `supabase db push`; the CLI applies both migrations.
+5. Run the database authorization tests with `supabase test db` after installing/configuring the Supabase CLI and its local database dependencies. This verifies the owner and cross-account RLS cases against the configured local database.
+6. Run `npm ci`, then `npm run dev`. Create an account or sign in at `/auth/sign-in`.
+
+### Importing existing browser data
+
+1. Sign in on the browser/device that contains the existing Spendly data, then open **Settings**.
+2. Review the detected record counts and merge preview. Spendly validates the complete dataset before writing. Existing cloud records are retained; matching categories are linked, conflicting record IDs are remapped, and existing monthly budget/allocation values win.
+3. Choose **Import local data**. The import can be retried after a network or database failure; the browser copy is retained, and successful imports are recorded per account to prevent duplicate imports.
+4. Verify the imported records in the app and export a backup if desired. Only then select the verification checkbox and choose **Remove browser copy**. JSON backup and restore remain available and accept older backup formats.
+
+If cloud and local data both exist, the import merges them; it never replaces the cloud dataset. If a migration fails, keep the browser data, reload cloud data from the error banner, and retry from Settings. Do not clear the browser copy as a recovery step.
+
+This schema covers the data model currently present in Spendly: categories, categorization rules, income/expense transactions, recurring rules and occurrences, monthly budgets, and category allocations. The current application has no Planner/monthly plan or preferences entity; those are intentionally not invented by the migration. Amounts are stored as integer paise, preserving the domain representation. Existing string record IDs are retained.
+
 ## Data and privacy
 
-Spendly stores transaction, category, and rule data in the browser’s localStorage. The project does not configure an account, server-side storage, or synchronization. Browser storage is not encrypted or backed up by Spendly; anyone with access to your browser profile may be able to access it. CSV exports are downloaded to your device.
+Supabase Auth identifies each user and PostgreSQL row-level security restricts every finance table to its owner. The public URL and publishable key are not privileged credentials; access control is enforced by RLS rather than trusting client-supplied owner IDs. Do not disable RLS or deploy privileged keys to a browser. Local browser data is not encrypted; keep JSON backups and CSV exports private.
 
-JSON backups are downloaded to your device and can be merged without overwriting existing records or explicitly used to replace all saved finance data. Backup files are validated locally before import; keep exported files private and secure.
+JSON backups are downloaded to your device and retain their versioned schema for compatibility with existing exports. Backup files are validated before import; keep exported files private and secure. Local-to-cloud migration must be previewed while signed in. It validates record relationships before import and must not remove browser data until successful migration has been verified. If both local and cloud records exist, use merge/reconciliation instead of replacing cloud data.
 
 See [Contributing](./CONTRIBUTING.md) for how to get involved and [LICENSE](./LICENSE) for the project’s license.

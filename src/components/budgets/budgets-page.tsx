@@ -170,13 +170,13 @@ export function BudgetsPage() {
         (right.analysis?.spentPaise ?? 0) - (left.analysis?.spentPaise ?? 0),
     );
 
-  function createBudget() {
-    if (finance.saveOverallBudget(year, month, undefined)) {
+  async function createBudget() {
+    if (await finance.saveOverallBudget(year, month, undefined)) {
       setFormError(null);
     }
   }
 
-  function saveOverall(event: FormEvent<HTMLFormElement>) {
+  async function saveOverall(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     let amount: number | undefined;
     if (overallAmount.trim()) {
@@ -187,13 +187,13 @@ export function BudgetsPage() {
       }
       amount = parsedAmount;
     }
-    if (finance.saveOverallBudget(year, month, amount)) {
+    if (await finance.saveOverallBudget(year, month, amount)) {
       setOverallDraft(null);
       setFormError(null);
     }
   }
 
-  function saveAllocation(event: FormEvent<HTMLFormElement>) {
+  async function saveAllocation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const amount = parseRupeesToPaise(categoryAmount);
     if (!amount) {
@@ -205,7 +205,7 @@ export function BudgetsPage() {
       setFormError("Choose an expense category.");
       return;
     }
-    if (finance.saveCategoryBudget(year, month, selectedCategoryId, amount)) {
+    if (await finance.saveCategoryBudget(year, month, selectedCategoryId, amount)) {
       setCategoryAmount("");
       setCategoryId("");
       setEditingCategoryId(null);
@@ -213,11 +213,11 @@ export function BudgetsPage() {
     }
   }
 
-  function confirmRemoval() {
+  async function confirmRemoval() {
     if (removal?.kind === "budget" && budget) {
-      finance.deleteMonthlyBudget(budget.id);
+      if (!(await finance.deleteMonthlyBudget(budget.id))) return;
     } else if (removal?.kind === "allocation") {
-      finance.removeCategoryBudget(year, month, removal.categoryId);
+      if (!(await finance.removeCategoryBudget(year, month, removal.categoryId))) return;
     }
     setRemoval(null);
   }
@@ -408,10 +408,12 @@ export function BudgetsPage() {
                   <button
                     className="button-secondary"
                     onClick={() => {
-                      if (finance.saveOverallBudget(year, month, undefined)) {
+                      void finance.saveOverallBudget(year, month, undefined).then((saved) => {
+                        if (saved) {
                         setOverallDraft(null);
                         setFormError(null);
-                      }
+                        }
+                      });
                     }}
                     type="button"
                   >
@@ -433,11 +435,11 @@ export function BudgetsPage() {
               <button
                 className="button-secondary"
                 disabled={!priorAllocations?.length}
-                onClick={() => {
-                  if (finance.copyCategoryBudgets(year, month)) {
-                    setFormError(null);
-                  }
-                }}
+                onClick={() =>
+                  void finance.copyCategoryBudgets(year, month).then((saved) => {
+                    if (saved) setFormError(null);
+                  })
+                }
                 type="button"
               >
                 <Copy aria-hidden="true" className="size-4" />

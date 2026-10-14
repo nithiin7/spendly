@@ -2,13 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { getSupabasePublicConfig } from "@/lib/supabase/config";
 import {
   ArrowDownToLine,
   ArrowLeftRight,
   ChartNoAxesCombined,
   House,
   Leaf,
+  LogOut,
   Menu,
   PiggyBank,
   Repeat2,
@@ -82,6 +86,86 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </ul>
     </nav>
+  );
+}
+
+function AccountIdentity() {
+  const router = useRouter();
+  const [email, setEmail] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    let unsubscribe = () => {};
+    if (!getSupabasePublicConfig()) return;
+
+    const supabase = createClient();
+    void supabase.auth.getUser().then(
+      ({ data, error: authError }) => {
+        if (!active) return;
+        if (authError) setError("Account status could not be loaded.");
+        else setEmail(data.user?.email ?? null);
+      },
+      () => {
+        if (active) setError("Account status could not be loaded.");
+      },
+    );
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setEmail(session?.user.email ?? null);
+    });
+    unsubscribe = () => data.subscription.unsubscribe();
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
+
+  async function signOut() {
+    setError("");
+    try {
+      const { error: authError } = await createClient().auth.signOut();
+      if (authError) throw authError;
+      router.replace("/auth/sign-in");
+      router.refresh();
+    } catch {
+      setError("You could not be signed out. Please try again.");
+    }
+  }
+
+  if (!email) {
+    return (
+      <Link
+        className="rounded-lg px-3 py-2 text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white"
+        href="/auth/sign-in"
+      >
+        Sign in to sync
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <div
+        aria-hidden="true"
+        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sage-300 text-xs font-semibold uppercase text-forest-950"
+      >
+        {email.slice(0, 2)}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{email}</p>
+        <p className="truncate text-xs text-white/45">Private cloud account</p>
+        {error && <p className="mt-1 text-xs text-red-200" role="alert">{error}</p>}
+      </div>
+      <button
+        aria-label="Sign out"
+        className="flex size-9 shrink-0 items-center justify-center rounded-lg text-white/65 hover:bg-white/10 hover:text-white"
+        onClick={signOut}
+        type="button"
+      >
+        <LogOut aria-hidden="true" className="size-4" />
+      </button>
+    </div>
   );
 }
 
@@ -168,18 +252,7 @@ export function AppSidebar({
       </p>
       <NavigationLinks />
       <div className="mt-auto border-t border-white/10 px-2 pt-5">
-        <div className="flex items-center gap-3">
-          <div
-            aria-hidden="true"
-            className="flex size-9 items-center justify-center rounded-full bg-sage-300 text-xs font-semibold text-forest-950"
-          >
-            JD
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">Jordan Davis</p>
-            <p className="truncate text-xs text-white/45">Personal account</p>
-          </div>
-        </div>
+        <AccountIdentity />
       </div>
     </aside>
   );

@@ -13,9 +13,9 @@ type CategoryRulesManagerProps = {
   categories: Category[];
   rules: CategoryRule[];
   onClose: () => void;
-  onAdd: (input: CategoryRuleInput) => boolean;
-  onEdit: (ruleId: string, input: CategoryRuleInput) => boolean;
-  onDelete: (ruleId: string) => boolean;
+  onAdd: (input: CategoryRuleInput) => Promise<boolean>;
+  onEdit: (ruleId: string, input: CategoryRuleInput) => Promise<boolean>;
+  onDelete: (ruleId: string) => Promise<boolean>;
 };
 
 type RuleForm = {
@@ -124,14 +124,14 @@ export function CategoryRulesManager({
   });
   const [error, setError] = useState<string | null>(null);
 
-  function saveNewRule(event: FormEvent<HTMLFormElement>) {
+  async function saveNewRule(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const input = parseRuleForm(newForm);
     if (!input) {
       setError("Choose a category, enter keywords, and set a whole-number priority.");
       return;
     }
-    if (!onAdd(input)) {
+    if (!(await onAdd(input))) {
       setError("The rule could not be saved. Check for duplicate keywords.");
       return;
     }
@@ -139,20 +139,28 @@ export function CategoryRulesManager({
     setError(null);
   }
 
-  function saveEditedRule(ruleId: string) {
+  async function saveEditedRule(ruleId: string) {
     if (!editingForm) return;
     const input = parseRuleForm(editingForm);
     if (!input) {
       setError("Choose a category, enter keywords, and set a whole-number priority.");
       return;
     }
-    if (!onEdit(ruleId, input)) {
+    if (!(await onEdit(ruleId, input))) {
       setError("The rule could not be saved. Check for duplicate keywords.");
       return;
     }
     setEditingId(null);
     setEditingForm(null);
     setError(null);
+  }
+
+  async function deleteRule(ruleId: string) {
+    if (!(await onDelete(ruleId))) {
+      setError("The custom rule could not be removed.");
+    } else {
+      setError(null);
+    }
   }
 
   return (
@@ -249,13 +257,7 @@ export function CategoryRulesManager({
                           <button
                             aria-label={`Delete rule for ${category?.name ?? "unknown category"}`}
                             className="flex size-9 items-center justify-center rounded-lg text-muted hover:bg-red-50 hover:text-red-700"
-                            onClick={() => {
-                              if (!onDelete(rule.id)) {
-                                setError("The custom rule could not be removed.");
-                              } else {
-                                setError(null);
-                              }
-                            }}
+                            onClick={() => void deleteRule(rule.id)}
                             type="button"
                           >
                             <Trash2 aria-hidden="true" className="size-4" />

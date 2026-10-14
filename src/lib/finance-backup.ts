@@ -222,8 +222,8 @@ function validateFinanceData(value: unknown): FinanceData {
         `Recurring occurrence "${occurrence.id}" references a missing or incompatible category.`,
       );
     }
-    if (occurrence.status === "confirmed") {
-      const transactionId = occurrence.transactionId!;
+    if (occurrence.transactionId) {
+      const transactionId = occurrence.transactionId;
       if (linkedTransactionIds.has(transactionId)) {
         throw new Error(
           `Recurring occurrence "${occurrence.id}" has a duplicate transaction link.`,

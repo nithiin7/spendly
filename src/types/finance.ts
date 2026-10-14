@@ -74,7 +74,7 @@ export type RecurringOccurrenceStatus = "pending" | "confirmed" | "skipped";
 
 export type RecurringOccurrence = {
   id: string;
-  ruleId: string;
+  ruleId: string | null;
   scheduledDate: string;
   date: string;
   description: string;

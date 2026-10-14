@@ -36,16 +36,16 @@ type TransactionsManagerProps = {
   categories: Category[];
   rules: CategoryRule[];
   transactions: Transaction[];
-  onAdd: (input: TransactionInput) => boolean;
-  onUpdate: (id: string, input: TransactionInput) => boolean;
-  onDelete: (id: string) => boolean;
-  onAddCategory: (name: string, type: TransactionType) => Category;
-  onRenameCategory: (id: string, name: string) => boolean;
-  onAddRule: (input: CategoryRuleInput) => boolean;
-  onEditRule: (ruleId: string, input: CategoryRuleInput) => boolean;
-  onDeleteRule: (ruleId: string) => boolean;
-  onResetDemo: () => boolean;
-  onClearAll: () => boolean;
+  onAdd: (input: TransactionInput) => Promise<boolean>;
+  onUpdate: (id: string, input: TransactionInput) => Promise<boolean>;
+  onDelete: (id: string) => Promise<boolean>;
+  onAddCategory: (name: string, type: TransactionType) => Promise<Category>;
+  onRenameCategory: (id: string, name: string) => Promise<boolean>;
+  onAddRule: (input: CategoryRuleInput) => Promise<boolean>;
+  onEditRule: (ruleId: string, input: CategoryRuleInput) => Promise<boolean>;
+  onDeleteRule: (ruleId: string) => Promise<boolean>;
+  onResetDemo: () => Promise<boolean>;
+  onClearAll: () => Promise<boolean>;
 };
 
 type Confirmation =
@@ -143,14 +143,15 @@ export function TransactionsManager({
     }
   }
 
-  function confirmAction(): boolean {
+  async function confirmAction(): Promise<boolean> {
     if (!confirmation) return false;
-    const succeeded =
+    const succeeded = await (
       confirmation.type === "delete"
         ? onDelete(confirmation.transaction.id)
         : confirmation.type === "reset"
           ? onResetDemo()
-          : onClearAll();
+          : onClearAll()
+    );
     if (succeeded) setConfirmation(null);
     return succeeded;
   }
@@ -585,11 +586,18 @@ function ConfirmationDialog({
 }: {
   confirmation: Exclude<Confirmation, null>;
   onClose: () => void;
-  onConfirm: () => boolean;
+  onConfirm: () => Promise<boolean>;
 }) {
   const isReset = confirmation.type === "reset";
   const isClear = confirmation.type === "clear";
   const [error, setError] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleConfirm() {
+    setIsSubmitting(true);
+    if (!(await onConfirm())) setError(true);
+    setIsSubmitting(false);
+  }
 
   return (
     <Modal
@@ -622,9 +630,8 @@ function ConfirmationDialog({
           </button>
           <button
             className="inline-flex h-10 items-center gap-2 rounded-xl bg-red-700 px-4 text-sm font-medium text-white transition-colors hover:bg-red-800"
-            onClick={() => {
-              if (!onConfirm()) setError(true);
-            }}
+            disabled={isSubmitting}
+            onClick={() => void handleConfirm()}
             type="button"
           >
             {isReset ? (

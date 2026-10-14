@@ -139,8 +139,9 @@ export function isRecurringOccurrence(
   return (
     typeof occurrence.id === "string" &&
     occurrence.id.trim().length > 0 &&
-    typeof occurrence.ruleId === "string" &&
-    occurrence.ruleId.trim().length > 0 &&
+    (occurrence.ruleId === null ||
+      (typeof occurrence.ruleId === "string" &&
+        occurrence.ruleId.trim().length > 0)) &&
     typeof occurrence.scheduledDate === "string" &&
     isCalendarDate(occurrence.scheduledDate) &&
     typeof occurrence.date === "string" &&
@@ -162,7 +163,8 @@ export function isRecurringOccurrence(
     typeof occurrence.updatedAt === "string" &&
     Number.isFinite(Date.parse(occurrence.updatedAt)) &&
     (occurrence.status === "confirmed"
-      ? typeof occurrence.transactionId === "string"
+      ? occurrence.transactionId === undefined ||
+        typeof occurrence.transactionId === "string"
       : occurrence.transactionId === undefined)
   );
 }

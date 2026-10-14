@@ -22,10 +22,10 @@ export function CategoriesPage() {
     );
   }
 
-  function addCategory(event: FormEvent<HTMLFormElement>) {
+  async function addCategory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
-      finance.addCustomCategory(newName, newType);
+      await finance.addCustomCategory(newName, newType);
       setNewName("");
       setError(null);
     } catch (caught) {
@@ -35,8 +35,8 @@ export function CategoriesPage() {
     }
   }
 
-  function saveCategory(category: Category) {
-    if (!finance.editCategory(category.id, editName)) {
+  async function saveCategory(category: Category) {
+    if (!(await finance.editCategory(category.id, editName))) {
       setError("The category name could not be saved.");
       return;
     }

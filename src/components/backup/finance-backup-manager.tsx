@@ -16,7 +16,7 @@ import type { FinanceData } from "@/types/finance";
 
 type FinanceBackupManagerProps = {
   data: FinanceData | null;
-  onRestore: (data: FinanceData) => boolean;
+  onRestore: (data: FinanceData) => Promise<boolean>;
 };
 
 const emptyFinanceData: FinanceData = {
@@ -46,6 +46,7 @@ export function FinanceBackupManager({
   const [plan, setPlan] = useState<RestorePlan | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isReading, setIsReading] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   const closeDialog = () => {
     setIsOpen(false);
@@ -109,15 +110,17 @@ export function FinanceBackupManager({
     }
   };
 
-  const confirmRestore = () => {
+  const confirmRestore = async () => {
     if (!plan) return;
-    if (onRestore(plan.data)) {
+    setIsRestoring(true);
+    if (await onRestore(plan.data)) {
       closeDialog();
     } else {
       setError(
-        "The backup could not be saved. Your current data has not been replaced.",
+        "The backup was not fully saved. Review the current saved data before retrying.",
       );
     }
+    setIsRestoring(false);
   };
 
   return (
@@ -169,7 +172,7 @@ export function FinanceBackupManager({
 
       {isOpen && (
         <Modal
-          description="Review the file and choose how it should affect data saved in this browser."
+          description="Review the file and choose how it should affect your current Spendly data."
           onClose={closeDialog}
           title="Restore a backup"
         >
@@ -358,7 +361,8 @@ export function FinanceBackupManager({
                   className={`button-primary ${
                     mode === "replace" ? "bg-red-800 hover:bg-red-700" : ""
                   }`}
-                  onClick={confirmRestore}
+                  disabled={isRestoring}
+                  onClick={() => void confirmRestore()}
                   type="button"
                 >
                   Confirm {mode === "replace" ? "replacement" : "merge"}

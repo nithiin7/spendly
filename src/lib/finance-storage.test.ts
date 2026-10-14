@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { getDemoFinanceData } from "./demo-data.ts";
-import { loadFinanceData, saveFinanceData } from "./finance-storage.ts";
+import {
+  clearStoredFinanceData,
+  getOrCreateFinanceMigrationId,
+  loadFinanceData,
+  saveFinanceData,
+} from "./finance-storage.ts";
 import {
   createRecurringOccurrence,
   settleRecurringOccurrence,
@@ -13,6 +18,7 @@ test("recurring rules, history, and monthly budgets persist across storage reloa
   const localStorage = {
     getItem: (key: string) => values.get(key) ?? null,
     setItem: (key: string, value: string) => values.set(key, value),
+    removeItem: (key: string) => values.delete(key),
   };
   const priorWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
   Object.defineProperty(globalThis, "window", {
@@ -77,11 +83,46 @@ test("legacy saved finance data is migrated without changing transactions", () =
   const localStorage = {
     getItem: (key: string) => values.get(key) ?? null,
     setItem: (key: string, value: string) => values.set(key, value),
+    removeItem: (key: string) => values.delete(key),
   };
   const priorWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: { localStorage },
+  });
+
+  test("local data changes invalidate its prior cloud migration receipt identifier", () => {
+    const values = new Map<string, string>();
+    const localStorage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    };
+    const priorWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { localStorage },
+    });
+
+    try {
+      const data = getDemoFinanceData();
+      saveFinanceData(data);
+      const firstMigrationId = getOrCreateFinanceMigrationId();
+
+      saveFinanceData({ ...data, transactions: [] });
+      const secondMigrationId = getOrCreateFinanceMigrationId();
+
+      assert.notEqual(secondMigrationId, firstMigrationId);
+      clearStoredFinanceData();
+      assert.equal(values.get("spendly.finance.v1"), undefined);
+      assert.equal(values.get("spendly.finance.migration.v1"), undefined);
+    } finally {
+      if (priorWindow) {
+        Object.defineProperty(globalThis, "window", priorWindow);
+      } else {
+        Reflect.deleteProperty(globalThis, "window");
+      }
+    }
   });
 
   try {

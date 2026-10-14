@@ -6,6 +6,7 @@ import {
   defaultCategoryRules,
   renameCategory,
 } from "@/lib/categories";
+import { defaultCategories } from "@/lib/categories";
 import {
   createCategoryRule,
   removeCategoryRule,
@@ -26,10 +27,24 @@ import {
 } from "@/lib/recurring-transactions";
 import {
   clearFinanceData,
+  clearStoredFinanceData,
+  getOrCreateFinanceMigrationId,
+  hasStoredFinanceData,
   loadFinanceData,
+  readStoredFinanceData,
   resetFinanceData,
   saveFinanceData,
 } from "@/lib/finance-storage";
+import { getDemoFinanceData } from "@/lib/demo-data";
+import {
+  createMigrationRecordId,
+  reconcileLocalFinanceData,
+  type FinanceImportCounts,
+} from "@/lib/finance-migration";
+import { FinanceRepository } from "@/lib/finance-repository";
+import { createClient } from "@/lib/supabase/client";
+import { getSupabasePublicConfig } from "@/lib/supabase/config";
+import { SupabaseFinanceRepository } from "@/lib/supabase/finance-repository";
 import type {
   Category,
   CategoryBudgetAllocation,
@@ -46,8 +61,43 @@ import type {
 type FinanceDataState = {
   data: FinanceData | null;
   isLoading: boolean;
+  isSaving: boolean;
   error: string | null;
+  storageMode: "local" | "cloud";
+  userEmail: string | null;
+  localMigrationData: FinanceData | null;
+  localMigrationError: string | null;
+  cloudData: FinanceData | null;
+  migrationComplete: boolean;
+  migrationOutcome: {
+    added: FinanceImportCounts;
+    conflictsResolved: number;
+  } | null;
 };
+
+function cloneDefaultFinanceData(): FinanceData {
+  return {
+    categories: defaultCategories.map((category) => ({ ...category })),
+    rules: defaultCategoryRules.map((rule) => ({
+      ...rule,
+      keywords: [...rule.keywords],
+    })),
+    transactions: [],
+    recurringRules: [],
+    recurringOccurrences: [],
+    budgets: [],
+  };
+}
+
+function withDefaultCategories(data: FinanceData): FinanceData {
+  if (data.categories.length > 0) return data;
+  const defaults = cloneDefaultFinanceData();
+  return {
+    ...data,
+    categories: defaults.categories,
+    rules: data.rules.length > 0 ? data.rules : defaults.rules,
+  };
+}
 
 function getOrCreateMonthlyBudget(
   budgets: MonthlyBudget[],
@@ -75,47 +125,424 @@ export function useFinanceDataState() {
   const [state, setState] = useState<FinanceDataState>({
     data: null,
     isLoading: true,
+    isSaving: false,
     error: null,
+    storageMode: "local",
+    userEmail: null,
+    localMigrationData: null,
+    localMigrationError: null,
+    cloudData: null,
+    migrationComplete: false,
+    migrationOutcome: null,
   });
   const dataRef = useRef<FinanceData | null>(null);
+  const persistedDataRef = useRef<FinanceData | null>(null);
+  const repositoryRef = useRef<FinanceRepository | null>(null);
+  const localModeRef = useRef(true);
+  const isSavingRef = useRef(false);
 
   useEffect(() => {
+    let active = true;
+    let generation = 0;
+    let ownerId: string | null = null;
+    const config = getSupabasePublicConfig();
+
+    if (!config) {
+      localModeRef.current = true;
+      try {
+        const data = loadFinanceData();
+        dataRef.current = data;
+        setState({
+          data,
+          isLoading: false,
+          isSaving: false,
+          error: null,
+          storageMode: "local",
+          userEmail: null,
+          localMigrationData: null,
+          localMigrationError: null,
+          cloudData: null,
+          migrationComplete: false,
+          migrationOutcome: null,
+        });
+      } catch (error) {
+        setState((current) => ({
+          ...current,
+          data: null,
+          isLoading: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Your finance data could not be loaded.",
+        }));
+      }
+      return () => {
+        active = false;
+      };
+    }
+
+    localModeRef.current = false;
+    const supabase = createClient();
+
+    const loadForUser = async (userId: string, email: string | null) => {
+      if (ownerId === userId) return;
+      ownerId = userId;
+      const loadId = ++generation;
+      const repository = new SupabaseFinanceRepository(supabase, userId);
+      repositoryRef.current = repository;
+      setState((current) => ({
+        ...current,
+        isLoading: true,
+        error: null,
+        storageMode: "cloud",
+        userEmail: email,
+      }));
+
+      try {
+        const cloudData = await repository.loadFinanceData();
+        if (!active || loadId !== generation) return;
+        persistedDataRef.current = cloudData;
+        const data = withDefaultCategories(cloudData);
+        dataRef.current = data;
+        let localMigrationData: FinanceData | null = null;
+        let localMigrationError: string | null = null;
+        let migrationComplete = false;
+        try {
+          if (hasStoredFinanceData()) {
+            localMigrationData = readStoredFinanceData();
+            if (localMigrationData) {
+              migrationComplete = await repository.hasCompletedMigration(
+                getOrCreateFinanceMigrationId(),
+              );
+            }
+          }
+        } catch (error) {
+          localMigrationError =
+            error instanceof Error
+              ? error.message
+              : "Local finance data could not be previewed.";
+        }
+        setState({
+          data,
+          isLoading: false,
+          isSaving: false,
+          error: null,
+          storageMode: "cloud",
+          userEmail: email,
+          localMigrationData,
+          localMigrationError,
+          cloudData,
+          migrationComplete,
+          migrationOutcome: null,
+        });
+      } catch {
+        if (!active || loadId !== generation) return;
+        setState((current) => ({
+          ...current,
+          isLoading: false,
+          error:
+            "Cloud finance data could not be loaded. Check your connection and retry.",
+          storageMode: "cloud",
+          userEmail: email,
+        }));
+      }
+    };
+
+    const subscription = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return;
+      if (session?.user) {
+        void loadForUser(session.user.id, session.user.email ?? null);
+      } else if (event === "SIGNED_OUT") {
+        generation += 1;
+        ownerId = null;
+        dataRef.current = null;
+        persistedDataRef.current = null;
+        repositoryRef.current = null;
+        setState({
+          data: null,
+          isLoading: false,
+          isSaving: false,
+          error: "Sign in to access your cloud finance data.",
+          storageMode: "cloud",
+          userEmail: null,
+          localMigrationData: null,
+          localMigrationError: null,
+          cloudData: null,
+          migrationComplete: false,
+          migrationOutcome: null,
+        });
+      }
+    });
+
+    void supabase.auth.getUser().then(
+      ({ data, error }) => {
+        if (!active) return;
+        if (error || !data.user) {
+          setState((current) => ({
+            ...current,
+            data: null,
+            isLoading: false,
+            error: "Your session could not be verified. Sign in again to continue.",
+            storageMode: "cloud",
+          }));
+          return;
+        }
+        void loadForUser(data.user.id, data.user.email ?? null);
+      },
+      () => {
+        if (!active) return;
+        setState((current) => ({
+          ...current,
+          data: null,
+          isLoading: false,
+          error: "Your session could not be verified. Sign in again to continue.",
+          storageMode: "cloud",
+        }));
+      },
+    );
+
+    return () => {
+      active = false;
+      generation += 1;
+      subscription.data.subscription.unsubscribe();
+    };
+  }, []);
+
+  const reportMutationError = useCallback((message: string) => {
+    setState((previous) => ({ ...previous, error: message }));
+  }, []);
+
+  const commit = useCallback(async (nextData: FinanceData): Promise<boolean> => {
+    const previousData = dataRef.current;
+    if (!previousData) return false;
+    if (isSavingRef.current) {
+      setState((current) => ({
+        ...current,
+        error: "A save is still in progress. Wait for it to finish, then retry.",
+      }));
+      return false;
+    }
+    isSavingRef.current = true;
+    setState((current) => ({ ...current, isSaving: true, error: null }));
     try {
-      const data = loadFinanceData();
-      dataRef.current = data;
-      setState({ data, isLoading: false, error: null });
+      if (localModeRef.current) {
+        saveFinanceData(nextData);
+      } else {
+        const repository = repositoryRef.current;
+        const persisted = persistedDataRef.current;
+        if (!repository || !persisted) {
+          throw new Error("Cloud finance storage is not ready. Reload and retry.");
+        }
+        await repository.persistChanges(persisted, nextData);
+        persistedDataRef.current = nextData;
+      }
+      dataRef.current = nextData;
+      setState((current) => ({
+        ...current,
+        data: nextData,
+        cloudData: localModeRef.current ? null : nextData,
+        isLoading: false,
+        isSaving: false,
+        error: null,
+      }));
+      return true;
     } catch (error) {
-      setState({
-        data: null,
+      const message =
+        error instanceof Error
+          ? `Changes could not be saved: ${error.message}`
+          : "Changes could not be saved.";
+      if (!localModeRef.current && repositoryRef.current) {
+        try {
+          const latest = await repositoryRef.current.loadFinanceData();
+          persistedDataRef.current = latest;
+          const refreshed = withDefaultCategories(latest);
+          dataRef.current = refreshed;
+          setState((current) => ({
+            ...current,
+            data: refreshed,
+            cloudData: latest,
+            isLoading: false,
+            isSaving: false,
+            error: `${message} The cloud copy was reloaded; review it before retrying.`,
+          }));
+        } catch {
+          setState((current) => ({
+            ...current,
+            isSaving: false,
+            error: `${message} The cloud copy could not be refreshed. Reconnect and reload before retrying.`,
+          }));
+        }
+      } else {
+        setState((current) => ({
+          ...current,
+          isSaving: false,
+          error: message,
+        }));
+      }
+      return false;
+    } finally {
+      isSavingRef.current = false;
+    }
+  }, []);
+
+  const reloadData = useCallback(async (): Promise<void> => {
+    setState((current) => ({ ...current, isLoading: true, error: null }));
+    try {
+      if (localModeRef.current) {
+        const data = loadFinanceData();
+        dataRef.current = data;
+        setState((current) => ({
+          ...current,
+          data,
+          isLoading: false,
+          error: null,
+          cloudData: null,
+        }));
+        return;
+      }
+
+      const supabase = createClient();
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData.user) {
+        throw new Error("Your session could not be verified. Sign in again.");
+      }
+      const repository = new SupabaseFinanceRepository(supabase, authData.user.id);
+      repositoryRef.current = repository;
+      const cloudData = await repository.loadFinanceData();
+      persistedDataRef.current = cloudData;
+      const data = withDefaultCategories(cloudData);
+      dataRef.current = data;
+      let localMigrationData: FinanceData | null = null;
+      let localMigrationError: string | null = null;
+      let migrationComplete = false;
+      try {
+        if (hasStoredFinanceData()) {
+          localMigrationData = readStoredFinanceData();
+          if (localMigrationData) {
+            migrationComplete = await repository.hasCompletedMigration(
+              getOrCreateFinanceMigrationId(),
+            );
+          }
+        }
+      } catch (error) {
+        localMigrationError =
+          error instanceof Error
+            ? error.message
+            : "Local finance data could not be previewed.";
+      }
+      setState((current) => ({
+        ...current,
+        data,
+        isLoading: false,
+        error: null,
+        cloudData,
+        storageMode: "cloud",
+        userEmail: authData.user.email ?? null,
+        localMigrationData,
+        localMigrationError,
+        migrationComplete,
+        migrationOutcome: null,
+      }));
+    } catch (error) {
+      setState((current) => ({
+        ...current,
         isLoading: false,
         error:
           error instanceof Error
             ? error.message
-            : "Your finance data could not be loaded.",
-      });
+            : "Finance data could not be reloaded. Check your connection and retry.",
+      }));
     }
   }, []);
 
-  const commit = useCallback((nextData: FinanceData): boolean => {
+  const migrateLocalData = useCallback(async (): Promise<boolean> => {
+    const repository = repositoryRef.current;
+    const cloudData = persistedDataRef.current;
+    if (!repository || !cloudData) {
+      reportMutationError("Cloud storage is not ready. Reload and retry the migration.");
+      return false;
+    }
+
     try {
-      saveFinanceData(nextData);
-      dataRef.current = nextData;
-      setState({ data: nextData, isLoading: false, error: null });
-      return true;
-    } catch (error) {
+      const localData = readStoredFinanceData();
+      if (!localData) {
+        reportMutationError("No saved local Spendly data was found to import.");
+        return false;
+      }
+      const migrationId = getOrCreateFinanceMigrationId();
+      if (await repository.hasCompletedMigration(migrationId)) {
+        setState((current) => ({
+          ...current,
+          localMigrationData: localData,
+          migrationComplete: true,
+          error: null,
+        }));
+        return true;
+      }
+
+      const plan = reconcileLocalFinanceData(
+        cloudData,
+        localData,
+        (entityType, recordId, attempt) =>
+          createMigrationRecordId(migrationId, entityType, recordId, attempt),
+      );
+      if (!(await commit(plan.data))) return false;
+
+      await repository.recordCompletedMigration(migrationId, plan.added);
       setState((current) => ({
         ...current,
-        error:
-          error instanceof Error
-            ? `Changes could not be saved: ${error.message}`
-            : "Changes could not be saved.",
+        data: plan.data,
+        cloudData: plan.data,
+        localMigrationData: localData,
+        migrationComplete: true,
+        migrationOutcome: {
+          added: plan.added,
+          conflictsResolved: plan.conflictsResolved,
+        },
+        error: null,
+      }));
+      return true;
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Local finance data could not be imported.";
+      setState((current) => ({
+        ...current,
+        error: `Migration did not complete: ${message} Your browser copy is unchanged; reload cloud data and retry.`,
       }));
       return false;
     }
-  }, []);
+  }, [commit, reportMutationError]);
+
+  const clearLocalMigrationCopy = useCallback((): boolean => {
+    if (!state.migrationComplete || state.storageMode !== "cloud") {
+      reportMutationError(
+        "Verify the migrated cloud data before removing the browser copy.",
+      );
+      return false;
+    }
+    try {
+      clearStoredFinanceData();
+      setState((current) => ({
+        ...current,
+        localMigrationData: null,
+        localMigrationError: null,
+        error: null,
+      }));
+      return true;
+    } catch (error) {
+      reportMutationError(
+        error instanceof Error
+          ? error.message
+          : "The local copy could not be removed.",
+      );
+      return false;
+    }
+  }, [reportMutationError, state.migrationComplete, state.storageMode]);
 
   const addTransaction = useCallback(
-    (input: TransactionInput): boolean => {
+    async (input: TransactionInput): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       const now = new Date().toISOString();
@@ -129,7 +556,7 @@ export function useFinanceDataState() {
   );
 
   const updateTransaction = useCallback(
-    (id: string, input: TransactionInput): boolean => {
+    async (id: string, input: TransactionInput): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       const existing = current.transactions.find(
@@ -149,23 +576,25 @@ export function useFinanceDataState() {
   );
 
   const deleteTransaction = useCallback(
-    (id: string): boolean => {
+    async (id: string): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
+      const now = new Date().toISOString();
       return commit({
         ...current,
         transactions: removeTransaction(current.transactions, id),
+        recurringOccurrences: current.recurringOccurrences.map((occurrence) =>
+          occurrence.transactionId === id
+            ? { ...occurrence, transactionId: undefined, updatedAt: now }
+            : occurrence,
+        ),
       });
     },
     [commit],
   );
 
-  const reportMutationError = useCallback((message: string) => {
-    setState((previous) => ({ ...previous, error: message }));
-  }, []);
-
   const addRecurringRule = useCallback(
-    (input: RecurringRuleInput): boolean => {
+    async (input: RecurringRuleInput): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       const validationError = validateRecurringRuleInput(
@@ -198,7 +627,7 @@ export function useFinanceDataState() {
   );
 
   const editRecurringRule = useCallback(
-    (ruleId: string, input: RecurringRuleInput): boolean => {
+    async (ruleId: string, input: RecurringRuleInput): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       const existing = current.recurringRules.find((rule) => rule.id === ruleId);
@@ -271,7 +700,7 @@ export function useFinanceDataState() {
   );
 
   const setRecurringRuleActive = useCallback(
-    (ruleId: string, active: boolean): boolean => {
+    async (ruleId: string, active: boolean): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       const existing = current.recurringRules.find((rule) => rule.id === ruleId);
@@ -306,7 +735,7 @@ export function useFinanceDataState() {
   );
 
   const deleteRecurringRule = useCallback(
-    (ruleId: string): boolean => {
+    async (ruleId: string): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       if (!current.recurringRules.some((rule) => rule.id === ruleId)) {
@@ -321,6 +750,10 @@ export function useFinanceDataState() {
           (occurrence) =>
             occurrence.ruleId !== ruleId ||
             occurrence.status !== "pending",
+        ).map((occurrence) =>
+          occurrence.ruleId === ruleId
+            ? { ...occurrence, ruleId: null, updatedAt: new Date().toISOString() }
+            : occurrence,
         ),
       });
     },
@@ -328,11 +761,11 @@ export function useFinanceDataState() {
   );
 
   const saveOverallBudget = useCallback(
-    (
+    async (
       year: number,
       month: number,
       overallLimitPaise: number | undefined,
-    ): boolean => {
+    ): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       if (
@@ -374,12 +807,12 @@ export function useFinanceDataState() {
   );
 
   const saveCategoryBudget = useCallback(
-    (
+    async (
       year: number,
       month: number,
       categoryId: string,
       amountPaise: number,
-    ): boolean => {
+    ): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       if (!Number.isSafeInteger(amountPaise) || amountPaise <= 0) {
@@ -434,7 +867,7 @@ export function useFinanceDataState() {
   );
 
   const removeCategoryBudget = useCallback(
-    (year: number, month: number, categoryId: string): boolean => {
+    async (year: number, month: number, categoryId: string): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       const monthKey = `${year}-${String(month).padStart(2, "0")}`;
@@ -461,7 +894,7 @@ export function useFinanceDataState() {
   );
 
   const copyCategoryBudgets = useCallback(
-    (year: number, month: number): boolean => {
+    async (year: number, month: number): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       const previous = copyPreviousMonthAllocations(
@@ -513,7 +946,7 @@ export function useFinanceDataState() {
   );
 
   const deleteMonthlyBudget = useCallback(
-    (budgetId: string): boolean => {
+    async (budgetId: string): Promise<boolean> => {
       const current = dataRef.current;
       if (!current || !current.budgets.some((budget) => budget.id === budgetId)) {
         return false;
@@ -527,10 +960,10 @@ export function useFinanceDataState() {
   );
 
   const editRecurringOccurrence = useCallback(
-    (
+    async (
       occurrenceId: string,
       input: { amountPaise: number; date: string },
-    ): boolean => {
+    ): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       try {
@@ -550,10 +983,10 @@ export function useFinanceDataState() {
   );
 
   const settleRecurringOccurrence = useCallback(
-    (
+    async (
       occurrenceId: string,
       status: "confirmed" | "skipped",
-    ): boolean => {
+    ): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       try {
@@ -576,18 +1009,18 @@ export function useFinanceDataState() {
   );
 
   const addCustomCategory = useCallback(
-    (name: string, type: TransactionType): Category => {
+    async (name: string, type: TransactionType): Promise<Category> => {
       const current = dataRef.current;
       if (!current) {
         throw new Error("Finance data is still loading.");
       }
       const category = createCategory(name, current.categories, type);
       if (
-        !commit({
+        !(await commit({
           ...current,
           categories: [...current.categories, category],
           rules: current.rules ?? defaultCategoryRules,
-        })
+        }))
       ) {
         throw new Error("The new category could not be saved.");
       }
@@ -597,7 +1030,7 @@ export function useFinanceDataState() {
   );
 
   const addCategorizationRule = useCallback(
-    (input: CategoryRuleInput): boolean => {
+    async (input: CategoryRuleInput): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       try {
@@ -623,7 +1056,7 @@ export function useFinanceDataState() {
   );
 
   const editCategorizationRule = useCallback(
-    (ruleId: string, input: CategoryRuleInput): boolean => {
+    async (ruleId: string, input: CategoryRuleInput): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       try {
@@ -647,7 +1080,7 @@ export function useFinanceDataState() {
   );
 
   const deleteCategorizationRule = useCallback(
-    (ruleId: string): boolean => {
+    async (ruleId: string): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       try {
@@ -669,7 +1102,7 @@ export function useFinanceDataState() {
   );
 
   const editCategory = useCallback(
-    (categoryId: string, name: string): boolean => {
+    async (categoryId: string, name: string): Promise<boolean> => {
       const current = dataRef.current;
       if (!current) return false;
       try {
@@ -691,11 +1124,20 @@ export function useFinanceDataState() {
     [commit],
   );
 
-  const resetDemoData = useCallback((): boolean => {
+  const resetDemoData = useCallback(async (): Promise<boolean> => {
     try {
+      if (!localModeRef.current) {
+        return await commit(getDemoFinanceData());
+      }
       const data = resetFinanceData();
       dataRef.current = data;
-      setState({ data, isLoading: false, error: null });
+      setState((current) => ({
+        ...current,
+        data,
+        isLoading: false,
+        isSaving: false,
+        error: null,
+      }));
       return true;
     } catch (error) {
       setState((current) => ({
@@ -707,13 +1149,22 @@ export function useFinanceDataState() {
       }));
       return false;
     }
-  }, []);
+  }, [commit]);
 
-  const clearAllData = useCallback((): boolean => {
+  const clearAllData = useCallback(async (): Promise<boolean> => {
     try {
+      if (!localModeRef.current) {
+        return await commit(cloneDefaultFinanceData());
+      }
       const data = clearFinanceData();
       dataRef.current = data;
-      setState({ data, isLoading: false, error: null });
+      setState((current) => ({
+        ...current,
+        data,
+        isLoading: false,
+        isSaving: false,
+        error: null,
+      }));
       return true;
     } catch (error) {
       setState((current) => ({
@@ -725,15 +1176,18 @@ export function useFinanceDataState() {
       }));
       return false;
     }
-  }, []);
+  }, [commit]);
 
   const restoreData = useCallback(
-    (data: FinanceData): boolean => commit(data),
+    (data: FinanceData): Promise<boolean> => commit(data),
     [commit],
   );
 
   return {
     ...state,
+    reloadData,
+    migrateLocalData,
+    clearLocalMigrationCopy,
     addTransaction,
     updateTransaction,
     deleteTransaction,

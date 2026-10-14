@@ -91,20 +91,26 @@ export function RecurringPage() {
   ).length;
   const categoryById = new Map(categories.map((category) => [category.id, category]));
 
-  function saveRule(input: RecurringRuleInput): boolean {
+  async function saveRule(input: RecurringRuleInput): Promise<boolean> {
     const saved =
       editingRule === "new"
-        ? finance.addRecurringRule(input)
+        ? await finance.addRecurringRule(input)
         : editingRule
-          ? finance.editRecurringRule(editingRule.id, input)
+          ? await finance.editRecurringRule(editingRule.id, input)
           : false;
     if (saved) setEditingRule(null);
     return saved;
   }
 
-  function saveOccurrence(input: { amountPaise: number; date: string }): boolean {
+  async function saveOccurrence(input: {
+    amountPaise: number;
+    date: string;
+  }): Promise<boolean> {
     if (!editingOccurrence) return false;
-    const saved = finance.editRecurringOccurrence(editingOccurrence.id, input);
+    const saved = await finance.editRecurringOccurrence(
+      editingOccurrence.id,
+      input,
+    );
     if (saved) setEditingOccurrence(null);
     return saved;
   }
@@ -512,9 +518,11 @@ export function RecurringPage() {
               <button
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-800"
                 onClick={() => {
-                  if (finance.deleteRecurringRule(deletingRule.id)) {
+                  void finance.deleteRecurringRule(deletingRule.id).then((saved) => {
+                    if (saved) {
                     setDeletingRule(null);
-                  }
+                    }
+                  });
                 }}
                 type="button"
               >
@@ -573,7 +581,7 @@ function RecurringRuleForm({
   rule?: RecurringRule;
   categories: Category[];
   onClose: () => void;
-  onSave: (input: RecurringRuleInput) => boolean;
+  onSave: (input: RecurringRuleInput) => Promise<boolean>;
 }) {
   const today = localToday();
   const [type, setType] = useState<TransactionType>(rule?.type ?? "expense");
@@ -598,7 +606,7 @@ function RecurringRuleForm({
     [categories, type],
   );
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const amountPaise = parseRupeesToPaise(amount);
     if (amountPaise === null) {
@@ -623,7 +631,7 @@ function RecurringRuleForm({
       active: rule?.active ?? true,
       ...(notes.trim() ? { notes: notes.trim() } : {}),
     };
-    if (onSave(input)) return;
+    if (await onSave(input)) return;
     setError("This recurring schedule could not be saved. Review the details and try again.");
   }
 
@@ -822,7 +830,7 @@ function OccurrenceForm({
 }: {
   occurrence: RecurringOccurrence;
   onClose: () => void;
-  onSave: (input: { amountPaise: number; date: string }) => boolean;
+  onSave: (input: { amountPaise: number; date: string }) => Promise<boolean>;
 }) {
   const [amount, setAmount] = useState(
     (occurrence.amountPaise / 100).toFixed(2),
@@ -830,7 +838,7 @@ function OccurrenceForm({
   const [date, setDate] = useState(occurrence.date);
   const [error, setError] = useState<string | null>(null);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const amountPaise = parseRupeesToPaise(amount);
     if (amountPaise === null) {
@@ -841,7 +849,7 @@ function OccurrenceForm({
       setError("Choose a valid date for this occurrence.");
       return;
     }
-    if (!onSave({ amountPaise, date })) {
+    if (!(await onSave({ amountPaise, date }))) {
       setError("This occurrence could not be saved. Please try again.");
     }
   }

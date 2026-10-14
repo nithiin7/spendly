@@ -23,9 +23,9 @@ type TransactionFormProps = {
   categories: Category[];
   rules: CategoryRule[];
   onClose: () => void;
-  onSave: (input: TransactionInput) => boolean;
-  onAddCategory: (name: string, type: TransactionType) => Category;
-  onRenameCategory: (id: string, name: string) => boolean;
+  onSave: (input: TransactionInput) => Promise<boolean>;
+  onAddCategory: (name: string, type: TransactionType) => Promise<Category>;
+  onRenameCategory: (id: string, name: string) => Promise<boolean>;
 };
 
 function localToday(): string {
@@ -100,7 +100,7 @@ export function TransactionForm({
     setCategorySource(selection.categorySource);
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const amountPaise = parseRupeesToPaise(amount);
     if (amountPaise === null) {
@@ -116,7 +116,7 @@ export function TransactionForm({
       return;
     }
 
-    const saved = onSave({
+    const saved = await onSave({
       type,
       description: description.trim(),
       amountPaise,
@@ -130,9 +130,9 @@ export function TransactionForm({
     else setError("This transaction could not be saved. Please try again.");
   }
 
-  function addCategory() {
+  async function addCategory() {
     try {
-      const category = onAddCategory(categoryName, type);
+      const category = await onAddCategory(categoryName, type);
       setCategoryId(category.id);
       setCategorySource("manual");
       setCategoryName("");
@@ -145,8 +145,8 @@ export function TransactionForm({
     }
   }
 
-  function renameSelectedCategory() {
-    if (!categoryId || !onRenameCategory(categoryId, renameValue)) {
+  async function renameSelectedCategory() {
+    if (!categoryId || !(await onRenameCategory(categoryId, renameValue))) {
       setError("The category name could not be saved.");
       return;
     }
