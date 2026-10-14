@@ -143,6 +143,9 @@ export function FinanceDashboard() {
   if (!monthKey) return <LoadingDashboard />;
 
   const { categories, transactions } = finance.data;
+  const currency = finance.data.preferences?.defaultCurrency ?? "INR";
+  const formatMoney = (amountPaise: number) =>
+    formatRupees(amountPaise, currency);
   const summary = getMonthlyFinancialSummary(
     transactions,
     categories,
@@ -173,14 +176,14 @@ export function FinanceDashboard() {
     summary.previousMonth.expensePaise > 0
       ? summary.expenseChangePaise === 0
         ? "Same spending as last month"
-        : `${formatRupees(Math.abs(summary.expenseChangePaise))} ${
+        : `${formatMoney(Math.abs(summary.expenseChangePaise))} ${
             summary.expenseChangePaise > 0 ? "more" : "less"
           } than last month`
       : summary.expensePaise > 0
         ? "No expenses last month"
         : "No expenses this month";
   const largestExpenseLabel = summary.largestExpense
-    ? `${summary.largestExpense.description} · ${formatRupees(summary.largestExpense.amountPaise)}`
+    ? `${summary.largestExpense.description} · ${formatMoney(summary.largestExpense.amountPaise)}`
     : "No expenses recorded";
 
   return (
@@ -253,19 +256,19 @@ export function FinanceDashboard() {
           label="Remaining balance"
           note="Income minus expenses"
           tone={summary.balancePaise >= 0 ? "positive" : "default"}
-          value={formatRupees(summary.balancePaise)}
+          value={formatMoney(summary.balancePaise)}
         />
         <SummaryCard
           icon={ArrowDownToLine}
           label="Total income"
           note="Salary and other income"
-          value={formatRupees(summary.incomePaise)}
+          value={formatMoney(summary.incomePaise)}
         />
         <SummaryCard
           icon={ArrowUpFromLine}
           label="Total expenses"
           note="Across all expense categories"
-          value={formatRupees(summary.expensePaise)}
+          value={formatMoney(summary.expensePaise)}
         />
         <SummaryCard
           icon={PiggyBank}
@@ -285,14 +288,14 @@ export function FinanceDashboard() {
         className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-white p-5 shadow-card sm:px-6"
       >
         <div>
-          <p className="text-sm font-medium text-ink">
+          <p className="text-sm font-medium text-ink" data-financial-value>
             {budgetAnalytics.overall
-              ? `${formatRupees(budgetAnalytics.overall.spentPaise)} of ${formatRupees(budgetAnalytics.overall.budgetPaise)} spent against your budget`
+              ? `${formatMoney(budgetAnalytics.overall.spentPaise)} of ${formatMoney(budgetAnalytics.overall.budgetPaise)} spent against your budget`
               : "Plan your monthly spending"}
           </p>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-muted" data-financial-value>
             {budgetAnalytics.overall
-              ? `${formatRupees(budgetAnalytics.overall.remainingPaise)} remaining · ${budgetAnalytics.overall.utilizationPercent.toLocaleString("en-IN", { maximumFractionDigits: 1 })}% used`
+              ? `${formatMoney(budgetAnalytics.overall.remainingPaise)} remaining · ${budgetAnalytics.overall.utilizationPercent.toLocaleString("en-IN", { maximumFractionDigits: 1 })}% used`
               : "Review category limits and compare actual expenses"}
           </p>
         </div>
@@ -313,21 +316,26 @@ export function FinanceDashboard() {
         </article>
         <article className="min-w-0 rounded-xl border border-border bg-white px-4 py-3.5">
           <p className="text-xs font-medium text-muted">Largest expense</p>
-          <p className="mt-1 truncate text-sm font-semibold text-ink" title={largestExpenseLabel}>
+          <p className="mt-1 truncate text-sm font-semibold text-ink" data-financial-value title={largestExpenseLabel}>
             {largestExpenseLabel}
           </p>
         </article>
         <article className="rounded-xl border border-border bg-white px-4 py-3.5">
           <p className="text-xs font-medium text-muted">Compared with last month</p>
-          <p className="mt-1 text-sm font-semibold text-ink">
+          <p className="mt-1 text-sm font-semibold text-ink" data-financial-value>
             {expenseComparison}
           </p>
         </article>
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.85fr)]">
-        <SpendingChart currentMonth={monthKey} months={spendingMonths} />
-        <CategoryBreakdown categories={summary.categoryTotals} />
+        <SpendingChart
+          currentMonth={monthKey}
+          currency={currency}
+          hideBalances={finance.data.preferences?.hideBalances ?? false}
+          months={spendingMonths}
+        />
+        <CategoryBreakdown categories={summary.categoryTotals} currency={currency} />
       </div>
 
       {transactions.length === 0 && (
@@ -361,6 +369,8 @@ export function FinanceDashboard() {
 
       <RecentTransactions
         categories={categories}
+        currency={currency}
+        dateFormat={finance.data.preferences?.dateFormat ?? "DD/MM/YYYY"}
         onAdd={() => setQuickCreateType("expense")}
         transactions={transactions}
       />
@@ -368,6 +378,8 @@ export function FinanceDashboard() {
       {quickCreateType && (
         <TransactionForm
           categories={categories}
+          defaultCurrency={finance.data.preferences?.defaultCurrency ?? "INR"}
+          dateFormat={finance.data.preferences?.dateFormat ?? "DD/MM/YYYY"}
           initialType={quickCreateType}
           onAddCategory={finance.addCustomCategory}
           onClose={() => setQuickCreateType(null)}

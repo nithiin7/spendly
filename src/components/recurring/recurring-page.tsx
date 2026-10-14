@@ -22,9 +22,11 @@ import { PageEntrance } from "@/components/ui/page-entrance";
 import { Modal } from "@/components/ui/modal";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import { formatRupees, parseRupeesToPaise } from "@/lib/finance-utils";
+import { formatFinanceDate } from "@/lib/currency";
 import { isCalendarDate } from "@/lib/recurring-transactions";
 import type {
   Category,
+  DateFormat,
   RecurrenceFrequency,
   RecurringOccurrence,
   RecurringRule,
@@ -35,15 +37,6 @@ import type {
 function localToday(): string {
   const today = new Date();
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-}
-
-function formatDate(date: string): string {
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${date}T00:00:00.000Z`));
 }
 
 function frequencyLabel(
@@ -81,6 +74,11 @@ export function RecurringPage() {
   }
 
   const { recurringRules, recurringOccurrences, categories } = finance.data;
+  const currency = finance.data.preferences?.defaultCurrency ?? "INR";
+  const dateFormat = finance.data.preferences?.dateFormat ?? "DD/MM/YYYY";
+  const formatMoney = (amountPaise: number) =>
+    formatRupees(amountPaise, currency);
+  const formatDate = (date: string) => formatFinanceDate(date, dateFormat);
   const today = localToday();
   const pendingOccurrences = recurringOccurrences
     .filter((occurrence) => occurrence.status === "pending")
@@ -255,8 +253,9 @@ export function RecurringPage() {
                               ? "text-forest-800"
                               : "text-ink"
                           }`}
+                          data-financial-value
                         >
-                          {formatRupees(occurrence.amountPaise)}
+                          {formatMoney(occurrence.amountPaise)}
                         </p>
                       </div>
                     </div>
@@ -364,8 +363,8 @@ export function RecurringPage() {
                   </div>
                   <div className="mt-4 flex flex-wrap items-end justify-between gap-4 border-t border-border pt-4">
                     <div>
-                      <p className="text-lg font-semibold tabular-nums text-ink">
-                        {formatRupees(rule.amountPaise)}
+                      <p className="text-lg font-semibold tabular-nums text-ink" data-financial-value>
+                        {formatMoney(rule.amountPaise)}
                       </p>
                       <p className="mt-1 text-xs text-muted">
                         Next due {formatDate(rule.nextDueDate)}
@@ -461,8 +460,8 @@ export function RecurringPage() {
                   </p>
                 </div>
                 <div className="ml-auto flex items-center gap-3">
-                  <span className="text-sm font-semibold tabular-nums text-ink">
-                    {formatRupees(occurrence.amountPaise)}
+                  <span className="text-sm font-semibold tabular-nums text-ink" data-financial-value>
+                    {formatMoney(occurrence.amountPaise)}
                   </span>
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -487,6 +486,8 @@ export function RecurringPage() {
       {editingRule !== null && (
         <RecurringRuleForm
           categories={categories}
+          currency={currency}
+          dateFormat={dateFormat}
           rule={editingRule === "new" ? undefined : editingRule}
           onClose={() => setEditingRule(null)}
           onSave={saveRule}
@@ -494,6 +495,8 @@ export function RecurringPage() {
       )}
       {editingOccurrence && (
         <OccurrenceForm
+          currency={currency}
+          dateFormat={dateFormat}
           occurrence={editingOccurrence}
           onClose={() => setEditingOccurrence(null)}
           onSave={saveOccurrence}
@@ -580,11 +583,15 @@ function OverviewCard({
 function RecurringRuleForm({
   rule,
   categories,
+  currency,
+  dateFormat,
   onClose,
   onSave,
 }: {
   rule?: RecurringRule;
   categories: Category[];
+  currency: string;
+  dateFormat: DateFormat;
   onClose: () => void;
   onSave: (input: RecurringRuleInput) => Promise<boolean>;
 }) {
@@ -697,13 +704,22 @@ function RecurringRuleForm({
             />
           </label>
           <label className="space-y-1.5">
-            <span className="text-sm font-medium text-ink">Amount (INR)</span>
+            <span className="text-sm font-medium text-ink">
+              Amount ({currency})
+            </span>
             <div className="relative">
               <span
                 aria-hidden="true"
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted"
               >
-                ₹
+                {new Intl.NumberFormat("en", {
+                  style: "currency",
+                  currency,
+                  currencyDisplay: "narrowSymbol",
+                  maximumFractionDigits: 0,
+                })
+                  .formatToParts(0)
+                  .find((part) => part.type === "currency")?.value ?? currency}
               </span>
               <input
                 className="form-input pl-8"
@@ -768,6 +784,7 @@ function RecurringRuleForm({
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-ink">Start date</span>
             <CalendarPicker
+              dateFormat={dateFormat}
               onChange={(event) => {
                 setStartDate(event);
                 if (nextDueDate < event) {
@@ -780,6 +797,7 @@ function RecurringRuleForm({
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-ink">Next due date</span>
             <CalendarPicker
+              dateFormat={dateFormat}
               min={startDate}
               onChange={setNextDueDate}
               value={nextDueDate}
@@ -791,6 +809,7 @@ function RecurringRuleForm({
             </span>
             <CalendarPicker
               clearable
+              dateFormat={dateFormat}
               min={startDate}
               onChange={setEndDate}
               value={endDate}
@@ -832,10 +851,14 @@ function RecurringRuleForm({
 
 function OccurrenceForm({
   occurrence,
+  currency,
+  dateFormat,
   onClose,
   onSave,
 }: {
   occurrence: RecurringOccurrence;
+  currency: string;
+  dateFormat: DateFormat;
   onClose: () => void;
   onSave: (input: { amountPaise: number; date: string }) => Promise<boolean>;
 }) {
@@ -871,7 +894,7 @@ function OccurrenceForm({
       <form className="space-y-5 px-5 py-5 sm:px-6" onSubmit={submit}>
         <p className="text-sm font-medium text-ink">{occurrence.description}</p>
         <label className="block space-y-1.5">
-          <span className="text-sm font-medium text-ink">Amount (INR)</span>
+          <span className="text-sm font-medium text-ink">Amount ({currency})</span>
           <input
             className="form-input"
             inputMode="decimal"
@@ -883,6 +906,7 @@ function OccurrenceForm({
         <label className="block space-y-1.5">
           <span className="text-sm font-medium text-ink">Occurrence date</span>
           <CalendarPicker
+            dateFormat={dateFormat}
             onChange={setDate}
             value={date}
           />

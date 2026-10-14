@@ -55,7 +55,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             </button>
           </div>
         )}
-        <main className="mx-auto w-full max-w-[1440px] px-5 py-7 sm:px-8 sm:py-9 lg:px-10">
+        <main
+          className="mx-auto w-full max-w-[1440px] px-5 py-7 sm:px-8 sm:py-9 lg:px-10"
+          data-hide-balances={finance.data?.preferences?.hideBalances ?? false}
+        >
           {children}
         </main>
       </div>

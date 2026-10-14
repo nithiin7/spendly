@@ -41,7 +41,7 @@ export function SummaryCard({
         <div>
           <p className="text-sm font-medium text-muted">{label}</p>
           <p className="mt-3 text-[26px] font-semibold leading-none tracking-[-0.045em] text-ink sm:text-[30px]">
-            {value}
+            <span data-financial-value>{value}</span>
           </p>
         </div>
         <span

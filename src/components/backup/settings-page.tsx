@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Modal } from "@/components/ui/modal";
 import { FinancePageState } from "@/components/finance/finance-page-state";
 import { FinanceBackupManager } from "@/components/backup/finance-backup-manager";
 import { PageEntrance } from "@/components/ui/page-entrance";
@@ -11,6 +12,8 @@ import {
 } from "@/lib/finance-migration";
 import type { FinanceImportCounts } from "@/lib/finance-migration";
 import { getOrCreateFinanceMigrationId } from "@/lib/finance-storage";
+import { supportedCurrencies } from "@/lib/currency";
+import type { DateFormat } from "@/types/finance";
 
 const countLabels: [keyof FinanceImportCounts, string][] = [
   ["categories", "Categories"],
@@ -32,6 +35,45 @@ export function SettingsPage() {
   const finance = useFinanceData();
   const [isMigrating, setIsMigrating] = useState(false);
   const [verifiedLocalCopy, setVerifiedLocalCopy] = useState(false);
+  const [pendingCurrency, setPendingCurrency] = useState<string | null>(null);
+  const [preserveOriginalAmounts, setPreserveOriginalAmounts] = useState(true);
+  const [conversionAcknowledged, setConversionAcknowledged] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
+  const [conversionProgress, setConversionProgress] = useState({
+    completed: 0,
+    total: 0,
+  });
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
+  const preferences = finance.data?.preferences ?? {
+    defaultCurrency: "INR",
+    dateFormat: "DD/MM/YYYY" as const,
+    hideBalances: false,
+  };
+
+  const changeCurrency = async () => {
+    if (!pendingCurrency || !conversionAcknowledged) return;
+    setIsConverting(true);
+    setConversionProgress({ completed: 0, total: 0 });
+    const saved = await finance.changeDefaultCurrency(
+      pendingCurrency,
+      preserveOriginalAmounts,
+      (completed, total) => setConversionProgress({ completed, total }),
+    );
+    setIsConverting(false);
+    if (saved) {
+      setPendingCurrency(null);
+      setConversionAcknowledged(false);
+      setConversionProgress({ completed: 0, total: 0 });
+    }
+  };
+
+  const savePreference = async (
+    patch: Partial<typeof preferences>,
+  ): Promise<void> => {
+    setIsSavingPreferences(true);
+    await finance.updatePreferences({ ...preferences, ...patch });
+    setIsSavingPreferences(false);
+  };
   const preview = useMemo(() => {
     if (!finance.localMigrationData || !finance.cloudData) return null;
     try {
@@ -86,10 +128,178 @@ export function SettingsPage() {
           {finance.error}
         </p>
       )}
+      <section
+        aria-labelledby="preferences-heading"
+        className="space-y-5 rounded-2xl border border-border bg-white p-5 shadow-card sm:p-6"
+      >
+        <div>
+          <h3 className="font-semibold text-ink" id="preferences-heading">
+            Display preferences
+          </h3>
+          <p className="mt-1 text-sm leading-6 text-muted">
+            Choose how amounts and dates appear throughout Spendly.
+          </p>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <label className="space-y-1.5">
+            <span className="text-sm font-medium text-ink">Default currency</span>
+            <select
+              className="form-input"
+              disabled={!finance.data || finance.isSaving || isSavingPreferences}
+              onChange={(event) => {
+                if (event.target.value !== preferences.defaultCurrency) {
+                  setPendingCurrency(event.target.value);
+                  setConversionAcknowledged(false);
+                  setPreserveOriginalAmounts(true);
+                }
+              }}
+              value={pendingCurrency ?? preferences.defaultCurrency}
+            >
+              {[...new Set([preferences.defaultCurrency, ...supportedCurrencies])].map(
+                (currency) => (
+                  <option key={currency} value={currency}>
+                    {currency}
+                  </option>
+                ),
+              )}
+            </select>
+            <span className="block text-xs text-muted">
+              Saved amounts are shown and summarized in this currency.
+            </span>
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-sm font-medium text-ink">Date format</span>
+            <select
+              className="form-input"
+              disabled={!finance.data || finance.isSaving || isSavingPreferences}
+              onChange={(event) =>
+                void savePreference({ dateFormat: event.target.value as DateFormat })
+              }
+              value={preferences.dateFormat}
+            >
+              <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+            </select>
+          </label>
+        </div>
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            checked={preferences.hideBalances}
+            className="mt-0.5"
+            disabled={!finance.data || finance.isSaving || isSavingPreferences}
+            onChange={(event) =>
+              void savePreference({ hideBalances: event.target.checked })
+            }
+            type="checkbox"
+          />
+          <span>
+            <span className="font-medium text-ink">Hide balances</span>
+            <span className="mt-0.5 block text-muted">
+              Blur financial totals on this device when you want more privacy.
+            </span>
+          </span>
+        </label>
+      </section>
       <FinanceBackupManager
         data={finance.data}
         onRestore={finance.restoreData}
       />
+      {pendingCurrency && (
+        <Modal
+          description={`Changing the default currency to ${pendingCurrency} requires historical exchange rates for your saved records.`}
+          onClose={() => {
+            if (!isConverting) setPendingCurrency(null);
+          }}
+          title="Change default currency?"
+        >
+          <div className="space-y-4 px-5 py-5 sm:px-6">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950" role="note">
+              <p className="font-semibold">Amounts will be converted using historical rates</p>
+              <p className="mt-1">
+                This includes transactions, recurring schedules and history, budgets,
+                and category allocations. It may take a while. Spendly will save
+                nothing if any required exchange rate is unavailable.
+              </p>
+            </div>
+            <fieldset className="space-y-3 text-sm">
+              <legend className="mb-2 font-medium text-ink">
+                What should happen to original currency details?
+              </legend>
+              <label className="flex items-start gap-2.5">
+                <input
+                  checked={preserveOriginalAmounts}
+                  disabled={isConverting}
+                  name="currency-history"
+                  onChange={() => setPreserveOriginalAmounts(true)}
+                  type="radio"
+                />
+                <span>
+                  Keep each record&apos;s original amount and currency for reference.
+                </span>
+              </label>
+              <label className="flex items-start gap-2.5">
+                <input
+                  checked={!preserveOriginalAmounts}
+                  disabled={isConverting}
+                  name="currency-history"
+                  onChange={() => setPreserveOriginalAmounts(false)}
+                  type="radio"
+                />
+                <span>
+                  Convert all saved amounts permanently and remove their original
+                  currency details.
+                </span>
+              </label>
+            </fieldset>
+            <label className="flex items-start gap-2.5 text-sm text-ink">
+              <input
+                checked={conversionAcknowledged}
+                disabled={isConverting}
+                onChange={(event) => setConversionAcknowledged(event.target.checked)}
+                type="checkbox"
+              />
+              <span>
+                I understand this updates all saved monetary records using
+                historical exchange rates.
+              </span>
+            </label>
+            {isConverting && (
+              <div aria-live="polite" className="space-y-2">
+                <progress
+                  aria-label="Converting saved amounts"
+                  className="w-full accent-forest-800"
+                  max={conversionProgress.total || 1}
+                  value={conversionProgress.completed}
+                />
+                <p className="text-xs text-muted">
+                  {conversionProgress.total
+                    ? `Converting record ${conversionProgress.completed} of ${conversionProgress.total}…`
+                    : "Loading historical exchange rates…"}
+                </p>
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                className="button-secondary"
+                disabled={isConverting}
+                onClick={() => setPendingCurrency(null)}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="button-primary"
+                disabled={!conversionAcknowledged || isConverting || finance.isSaving}
+                onClick={() => void changeCurrency()}
+                type="button"
+              >
+                {isConverting ? "Converting…" : "Confirm currency change"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
       {finance.storageMode === "cloud" && finance.localMigrationData && (
         <section
           aria-labelledby="migration-heading"

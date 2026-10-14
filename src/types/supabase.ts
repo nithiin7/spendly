@@ -57,6 +57,9 @@ export type Database = {
           date: string;
           payment_method: string | null;
           notes: string | null;
+          original_amount_paise: number | null;
+          original_currency: string | null;
+          exchange_rate_date: string | null;
         },
         {
           id: string;
@@ -69,6 +72,9 @@ export type Database = {
           date: string;
           payment_method?: string | null;
           notes?: string | null;
+          original_amount_paise?: number | null;
+          original_currency?: string | null;
+          exchange_rate_date?: string | null;
           created_at: string;
           updated_at?: string;
         }
@@ -87,6 +93,9 @@ export type Database = {
           end_date: string | null;
           active: boolean;
           notes: string | null;
+          original_amount_paise: number | null;
+          original_currency: string | null;
+          exchange_rate_date: string | null;
         },
         {
           id: string;
@@ -102,6 +111,9 @@ export type Database = {
           end_date?: string | null;
           active?: boolean;
           notes?: string | null;
+          original_amount_paise?: number | null;
+          original_currency?: string | null;
+          exchange_rate_date?: string | null;
           created_at: string;
           updated_at?: string;
         }
@@ -118,6 +130,9 @@ export type Database = {
           category_id: string;
           status: "pending" | "confirmed" | "skipped";
           transaction_id: string | null;
+          original_amount_paise: number | null;
+          original_currency: string | null;
+          exchange_rate_date: string | null;
         },
         {
           id: string;
@@ -131,6 +146,9 @@ export type Database = {
           category_id: string;
           status: "pending" | "confirmed" | "skipped";
           transaction_id?: string | null;
+          original_amount_paise?: number | null;
+          original_currency?: string | null;
+          exchange_rate_date?: string | null;
           created_at: string;
           updated_at?: string;
         }
@@ -141,6 +159,9 @@ export type Database = {
           year: number;
           month: number;
           overall_limit_paise: number | null;
+          original_overall_limit_paise: number | null;
+          original_currency: string | null;
+          exchange_rate_date: string | null;
         },
         {
           id: string;
@@ -148,18 +169,40 @@ export type Database = {
           year: number;
           month: number;
           overall_limit_paise?: number | null;
+          original_overall_limit_paise?: number | null;
+          original_currency?: string | null;
+          exchange_rate_date?: string | null;
           created_at: string;
           updated_at?: string;
         }
       >;
       budget_allocations: Table<
-        { user_id: string; budget_id: string; category_id: string; category_type: "expense"; amount_paise: number },
+        { user_id: string; budget_id: string; category_id: string; category_type: "expense"; amount_paise: number; original_amount_paise: number | null; original_currency: string | null; exchange_rate_date: string | null },
         {
           user_id: string;
           budget_id: string;
           category_id: string;
           category_type?: "expense";
           amount_paise: number;
+          original_amount_paise?: number | null;
+          original_currency?: string | null;
+          exchange_rate_date?: string | null;
+        }
+      >;
+      user_preferences: Table<
+        {
+          user_id: string;
+          default_currency: string;
+          date_format: "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD";
+          hide_balances: boolean;
+          updated_at: string;
+        },
+        {
+          user_id: string;
+          default_currency?: string;
+          date_format?: "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD";
+          hide_balances?: boolean;
+          updated_at?: string;
         }
       >;
       finance_migrations: Table<
@@ -178,7 +221,12 @@ export type Database = {
       >;
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      apply_currency_conversion: {
+        Args: { p_changes: Record<string, unknown> };
+        Returns: undefined;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

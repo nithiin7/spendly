@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+main[data-hide-balances="true"] [data-financial-value] {
+  filter: blur(8px);
+  user-select: none;
+}
+
 :root {
   color-scheme: light;
   --background: #f6f7f3;

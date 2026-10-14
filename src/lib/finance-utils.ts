@@ -13,11 +13,12 @@ import {
   isRecurringRule,
 } from "./recurring-transactions.ts";
 import { validateMonthlyBudgets } from "./monthly-budgets.ts";
+import { isCurrencyCode } from "./currency.ts";
 
-export function formatRupees(amountPaise: number): string {
+export function formatRupees(amountPaise: number, currency = "INR"): string {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: "INR",
+    currency,
     maximumFractionDigits: 2,
   }).format(amountPaise / 100);
 }
@@ -235,6 +236,21 @@ export function isFinanceData(value: unknown): value is FinanceData {
     return false;
   }
   const candidate = value as Record<string, unknown>;
+  const preferences = candidate.preferences;
+  const validPreferences =
+    preferences === undefined ||
+    (typeof preferences === "object" &&
+      preferences !== null &&
+      typeof (preferences as Record<string, unknown>).defaultCurrency ===
+        "string" &&
+      isCurrencyCode(
+        (preferences as Record<string, string>).defaultCurrency,
+      ) &&
+      ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"].includes(
+        (preferences as Record<string, string>).dateFormat,
+      ) &&
+      typeof (preferences as Record<string, unknown>).hideBalances ===
+        "boolean");
   if (
     !Array.isArray(candidate.categories) ||
     !Array.isArray(candidate.transactions)
@@ -391,6 +407,7 @@ export function isFinanceData(value: unknown): value is FinanceData {
     ).length;
 
   return (
+    validPreferences &&
     validCategories &&
     validRules &&
     validTransactions &&
@@ -405,23 +422,29 @@ export function isFinanceData(value: unknown): value is FinanceData {
 export function formatTransactionAmount(
   amountPaise: number,
   type: TransactionType,
+  currency = "INR",
 ): string {
-  const amount = formatRupees(amountPaise);
+  const amount = formatRupees(amountPaise, currency);
   return type === "income" ? `+${amount}` : `−${amount}`;
 }
 
-const transactionCsvHeaders = [
+function transactionCsvHeaders(currency: string) {
+  return [
   "Date (YYYY-MM-DD)",
   "Type",
   "Description",
   "Category",
-  "Amount (INR)",
+  `Amount (${currency})`,
+  "Original Amount",
+  "Original Currency",
+  "Exchange Rate Date",
   "Payment Method",
   "Notes",
   "Category Source",
   "Created At",
   "Updated At",
-];
+  ];
+}
 
 function escapeCsvValue(value: string): string {
   const safeValue = /^[\t\r ]*[=+\-@]/.test(value) ? `'${value}` : value;
@@ -431,6 +454,7 @@ function escapeCsvValue(value: string): string {
 export function createTransactionsCsv(
   transactions: Transaction[],
   categories: Category[],
+  currency = "INR",
 ): string {
   const categoryNames = new Map(
     categories.map((category) => [category.id, category.name]),
@@ -441,13 +465,18 @@ export function createTransactionsCsv(
     transaction.description,
     categoryNames.get(transaction.categoryId) ?? "Uncategorized",
     (transaction.amountPaise / 100).toFixed(2),
+    transaction.originalAmountPaise === undefined
+      ? ""
+      : (transaction.originalAmountPaise / 100).toFixed(2),
+    transaction.originalCurrency ?? "",
+    transaction.exchangeRateDate ?? "",
     transaction.paymentMethod ?? "",
     transaction.notes ?? "",
     transaction.categorySource === "suggested" ? "Suggested" : "Confirmed",
     transaction.createdAt,
     transaction.updatedAt,
   ]);
-  return [transactionCsvHeaders, ...rows]
+  return [transactionCsvHeaders(currency), ...rows]
     .map((row) => row.map(escapeCsvValue).join(","))
     .join("\r\n");
 }

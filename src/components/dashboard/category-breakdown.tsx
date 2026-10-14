@@ -3,8 +3,10 @@ import type { SpendingCategory } from "@/types/finance";
 
 export function CategoryBreakdown({
   categories,
+  currency = "INR",
 }: {
   categories: SpendingCategory[];
+  currency?: string;
 }) {
   const totalSpending = categories.reduce(
     (total, category) => total + category.amountPaise,
@@ -56,7 +58,9 @@ export function CategoryBreakdown({
                 {label}
               </span>
               <span className="text-sm font-medium tabular-nums text-ink">
-                {formatRupees(amountPaise)}
+                <span data-financial-value>
+                  {formatRupees(amountPaise, currency)}
+                </span>
               </span>
             </li>
           ))}
@@ -69,7 +73,9 @@ export function CategoryBreakdown({
       <p className="mt-5 border-t border-border pt-4 text-xs text-muted">
         Total tracked spending{" "}
         <span className="float-right font-semibold text-ink">
-          {formatRupees(totalSpending)}
+          <span data-financial-value>
+            {formatRupees(totalSpending, currency)}
+          </span>
         </span>
       </p>
     </section>

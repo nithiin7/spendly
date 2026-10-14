@@ -11,6 +11,7 @@ import {
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import type { DateFormat } from "@/types/finance";
 
 type CalendarPickerProps = {
   value: string;
@@ -21,6 +22,7 @@ type CalendarPickerProps = {
   clearable?: boolean;
   className?: string;
   id?: string;
+  dateFormat?: DateFormat;
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -38,7 +40,11 @@ function parseYearMonth(value: string): [number, number] | null {
   return month >= 0 && month < 12 ? [year, month] : null;
 }
 
-function formatValue(value: string, mode: "date" | "month"): string {
+function formatValue(
+  value: string,
+  mode: "date" | "month",
+  dateFormat: DateFormat,
+): string {
   const parts = parseYearMonth(value);
   if (!parts) return mode === "date" ? "Choose a date" : "Choose a month";
   const [year, month] = parts;
@@ -50,12 +56,13 @@ function formatValue(value: string, mode: "date" | "month"): string {
     }).format(new Date(Date.UTC(year, month, 1)));
   }
   const day = Number(value.slice(8, 10));
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, month, day)));
+  if (dateFormat === "DD/MM/YYYY") {
+    return `${String(day).padStart(2, "0")}/${String(month + 1).padStart(2, "0")}/${year}`;
+  }
+  if (dateFormat === "MM/DD/YYYY") {
+    return `${String(month + 1).padStart(2, "0")}/${String(day).padStart(2, "0")}/${year}`;
+  }
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 function monthValue(year: number, month: number): string {
@@ -71,6 +78,7 @@ export function CalendarPicker({
   clearable = false,
   className = "form-input",
   id,
+  dateFormat = "DD/MM/YYYY",
 }: CalendarPickerProps) {
   const triggerId = useId();
   const popoverId = useId();
@@ -230,7 +238,7 @@ export function CalendarPicker({
         type="button"
       >
         <span className={value ? "text-ink" : "text-muted"}>
-          {formatValue(value, mode)}
+          {formatValue(value, mode, dateFormat)}
         </span>
         <CalendarDays aria-hidden="true" className="size-4 shrink-0 text-muted" />
       </button>

@@ -30,6 +30,9 @@ export function IncomePage() {
   }
 
   const { categories, transactions, rules } = finance.data;
+  const currency = finance.data.preferences?.defaultCurrency ?? "INR";
+  const formatMoney = (amountPaise: number) =>
+    formatRupees(amountPaise, currency);
   const incomeTransactions = transactions.filter(
     (transaction) => transaction.type === "income",
   );
@@ -66,7 +69,7 @@ export function IncomePage() {
           label="Income this month"
           note={selectedMonth ? selectedMonth : "No income month selected"}
           tone="positive"
-          value={formatRupees(selectedMonth ? monthlyIncome(selectedMonth) : 0)}
+          value={formatMoney(selectedMonth ? monthlyIncome(selectedMonth) : 0)}
         />
         <SummaryCard
           icon={Wallet}
@@ -74,7 +77,7 @@ export function IncomePage() {
           note={`${incomeTransactions.length} ${
             incomeTransactions.length === 1 ? "transaction" : "transactions"
           }`}
-          value={formatRupees(
+          value={formatMoney(
             incomeTransactions.reduce(
               (total, transaction) => total + transaction.amountPaise,
               0,
@@ -111,7 +114,7 @@ export function IncomePage() {
                   })}
                 </span>
                 <span className="font-semibold tabular-nums text-ink">
-                  {formatRupees(monthlyIncome(monthKey))}
+                  {formatMoney(monthlyIncome(monthKey))}
                 </span>
               </li>
             ))}
@@ -130,6 +133,8 @@ export function IncomePage() {
       )}
       <TransactionsManager
         initialType="income"
+        defaultCurrency={finance.data.preferences?.defaultCurrency ?? "INR"}
+        dateFormat={finance.data.preferences?.dateFormat ?? "DD/MM/YYYY"}
         categories={categories}
         onAdd={finance.addTransaction}
         onAddCategory={finance.addCustomCategory}

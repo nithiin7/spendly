@@ -4,7 +4,7 @@ import {
   defaultCategoryRules,
 } from "./categories.ts";
 import { isFinanceData } from "./finance-utils.ts";
-import type { FinanceData } from "@/types/finance";
+import type { FinanceData, FinancePreferences } from "@/types/finance";
 
 const storageKey = "spendly.finance.v1";
 const migrationKey = "spendly.finance.migration.v1";
@@ -31,6 +31,11 @@ function parseStoredData(stored: string): { data: FinanceData; changed: boolean 
     );
   }
   const data: FinanceData = {
+    preferences: parsed.preferences ?? {
+      defaultCurrency: "INR",
+      dateFormat: "DD/MM/YYYY",
+      hideBalances: false,
+    },
     categories: parsed.categories.map((category) => ({
       ...category,
       isFallback:
@@ -52,6 +57,7 @@ function parseStoredData(stored: string): { data: FinanceData; changed: boolean 
       parsed.recurringRules === undefined ||
       parsed.recurringOccurrences === undefined ||
       parsed.budgets === undefined ||
+      parsed.preferences === undefined ||
       parsed.categories.some((category) => category.isFallback === undefined) ||
       parsed.transactions.some(
         (transaction) => transaction.categorySource === undefined,
@@ -103,13 +109,20 @@ export function saveFinanceData(data: FinanceData): void {
   storage.setItem(storageKey, JSON.stringify(data));
 }
 
-export function resetFinanceData(): FinanceData {
-  const demoData = getDemoFinanceData();
+export function resetFinanceData(
+  preferences?: FinancePreferences,
+): FinanceData {
+  const demoData = {
+    ...getDemoFinanceData(),
+    ...(preferences ? { preferences } : {}),
+  };
   saveFinanceData(demoData);
   return demoData;
 }
 
-export function clearFinanceData(): FinanceData {
+export function clearFinanceData(
+  preferences?: FinancePreferences,
+): FinanceData {
   const emptyData: FinanceData = {
     categories: defaultCategories.map((category) => ({ ...category })),
     rules: defaultCategoryRules.map((rule) => ({
@@ -120,6 +133,7 @@ export function clearFinanceData(): FinanceData {
     recurringRules: [],
     recurringOccurrences: [],
     budgets: [],
+    ...(preferences ? { preferences } : {}),
   };
   saveFinanceData(emptyData);
   return emptyData;

@@ -1,5 +1,19 @@
 export type TransactionType = "income" | "expense";
 
+export type DateFormat = "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD";
+
+export type FinancePreferences = {
+  defaultCurrency: string;
+  dateFormat: DateFormat;
+  hideBalances: boolean;
+};
+
+export type OriginalCurrencyAmount = {
+  originalAmountPaise?: number;
+  originalCurrency?: string;
+  exchangeRateDate?: string;
+};
+
 export type Category = {
   id: string;
   name: string;
@@ -22,7 +36,7 @@ export type CategoryRuleInput = Pick<
   "categoryId" | "keywords" | "priority"
 >;
 
-export type Transaction = {
+export type Transaction = OriginalCurrencyAmount & {
   id: string;
   type: TransactionType;
   description: string;
@@ -48,7 +62,7 @@ export type RecurrenceFrequency =
   | "yearly"
   | "custom";
 
-export type RecurringRule = {
+export type RecurringRule = OriginalCurrencyAmount & {
   id: string;
   description: string;
   type: TransactionType;
@@ -72,7 +86,7 @@ export type RecurringRuleInput = Omit<
 
 export type RecurringOccurrenceStatus = "pending" | "confirmed" | "skipped";
 
-export type RecurringOccurrence = {
+export type RecurringOccurrence = OriginalCurrencyAmount & {
   id: string;
   ruleId: string | null;
   scheduledDate: string;
@@ -87,22 +101,24 @@ export type RecurringOccurrence = {
   updatedAt: string;
 };
 
-export type CategoryBudgetAllocation = {
+export type CategoryBudgetAllocation = OriginalCurrencyAmount & {
   categoryId: string;
   amountPaise: number;
 };
 
-export type MonthlyBudget = {
+export type MonthlyBudget = OriginalCurrencyAmount & {
   id: string;
   year: number;
   month: number;
   overallLimitPaise?: number;
+  originalOverallLimitPaise?: number;
   allocations: CategoryBudgetAllocation[];
   createdAt: string;
   updatedAt: string;
 };
 
 export type FinanceData = {
+  preferences?: FinancePreferences;
   categories: Category[];
   rules: CategoryRule[];
   transactions: Transaction[];

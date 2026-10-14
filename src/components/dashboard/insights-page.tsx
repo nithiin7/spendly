@@ -39,6 +39,9 @@ export function InsightsPage() {
 
   const monthKey = selectedMonth ?? currentMonth;
   const { transactions, categories } = finance.data;
+  const currency = finance.data.preferences?.defaultCurrency ?? "INR";
+  const formatMoney = (amountPaise: number) =>
+    formatRupees(amountPaise, currency);
   const summary = getMonthlyFinancialSummary(transactions, categories, monthKey);
   const monthlyBudget = finance.data.budgets.find(
     (budget) =>
@@ -98,20 +101,20 @@ export function InsightsPage() {
       >
         <article className="rounded-2xl border border-border bg-white p-5 shadow-card">
           <p className="text-sm text-muted">{monthLabel} expenses</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-ink">
-            {formatRupees(summary.expensePaise)}
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-ink" data-financial-value>
+            {formatMoney(summary.expensePaise)}
           </p>
         </article>
         <article className="rounded-2xl border border-border bg-white p-5 shadow-card">
           <p className="text-sm text-muted">{previousLabel} expenses</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-ink">
-            {formatRupees(previousMonth.expensePaise)}
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-ink" data-financial-value>
+            {formatMoney(previousMonth.expensePaise)}
           </p>
         </article>
         <article className="rounded-2xl border border-border bg-white p-5 shadow-card">
           <p className="text-sm text-muted">Change in spending</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-ink">
-            {formatRupees(Math.abs(summary.expenseChangePaise))}
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-ink" data-financial-value>
+            {formatMoney(Math.abs(summary.expenseChangePaise))}
           </p>
           <p className="mt-1 text-xs text-muted">
             {summary.expenseChangePaise > 0
@@ -135,8 +138,8 @@ export function InsightsPage() {
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.85fr)]">
-        <SpendingChart currentMonth={monthKey} months={months} />
-        <CategoryBreakdown categories={summary.categoryTotals} />
+        <SpendingChart currentMonth={monthKey} currency={currency} months={months} />
+        <CategoryBreakdown categories={summary.categoryTotals} currency={currency} />
       </div>
 
       <section
@@ -171,10 +174,10 @@ export function InsightsPage() {
               <div className="rounded-xl border border-border p-4">
                 <div className="flex flex-wrap justify-between gap-2 text-sm">
                   <span className="font-medium text-ink">Overall</span>
-                  <span className="text-muted">
-                    {formatRupees(budgetAnalytics.overall.spentPaise)} actual
+                  <span className="text-muted" data-financial-value>
+                    {formatMoney(budgetAnalytics.overall.spentPaise)} actual
                     {" / "}
-                    {formatRupees(budgetAnalytics.overall.budgetPaise)} budget
+                    {formatMoney(budgetAnalytics.overall.budgetPaise)} budget
                   </span>
                 </div>
                 <div
@@ -199,10 +202,10 @@ export function InsightsPage() {
                     }}
                   />
                 </div>
-                <p className="mt-2 text-xs text-muted">
+                <p className="mt-2 text-xs text-muted" data-financial-value>
                   {budgetAnalytics.overall.status === "over"
-                    ? `${formatRupees(Math.abs(budgetAnalytics.overall.remainingPaise))} over budget`
-                    : `${formatRupees(budgetAnalytics.overall.remainingPaise)} remaining`}
+                    ? `${formatMoney(Math.abs(budgetAnalytics.overall.remainingPaise))} over budget`
+                    : `${formatMoney(budgetAnalytics.overall.remainingPaise)} remaining`}
                 </p>
               </div>
             ) : (
@@ -220,9 +223,9 @@ export function InsightsPage() {
                   >
                     <div className="flex flex-wrap justify-between gap-2 text-sm">
                       <span className="font-medium text-ink">{category.label}</span>
-                      <span className="text-muted">
-                        {formatRupees(category.spentPaise)} /{" "}
-                        {formatRupees(category.budgetPaise!)}
+                      <span className="text-muted" data-financial-value>
+                        {formatMoney(category.spentPaise)} /{" "}
+                        {formatMoney(category.budgetPaise!)}
                       </span>
                     </div>
                     <div
@@ -249,8 +252,8 @@ export function InsightsPage() {
                   </article>
                 ))}
             </div>
-            <p className="text-sm text-muted">
-              {formatRupees(budgetAnalytics.unbudgetedExpensePaise)} spent in
+            <p className="text-sm text-muted" data-financial-value>
+              {formatMoney(budgetAnalytics.unbudgetedExpensePaise)} spent in
               categories without allocations.
             </p>
           </div>
@@ -264,14 +267,14 @@ export function InsightsPage() {
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <div>
             <p className="text-sm text-muted">Income</p>
-            <p className="mt-1 font-semibold text-ink">
-              {formatRupees(summary.incomePaise)}
+            <p className="mt-1 font-semibold text-ink" data-financial-value>
+              {formatMoney(summary.incomePaise)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted">Net balance</p>
             <p className="mt-1 font-semibold text-ink">
-              {formatRupees(summary.balancePaise)}
+              {formatMoney(summary.balancePaise)}
             </p>
           </div>
           <div>

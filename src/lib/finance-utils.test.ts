@@ -186,11 +186,11 @@ test("CSV export has labeled ISO dates, exact INR amounts, quoted fields, and sa
 
   assert.equal(
     rows[0],
-    '"Date (YYYY-MM-DD)","Type","Description","Category","Amount (INR)","Payment Method","Notes","Category Source","Created At","Updated At"',
+    '"Date (YYYY-MM-DD)","Type","Description","Category","Amount (INR)","Original Amount","Original Currency","Exchange Rate Date","Payment Method","Notes","Category Source","Created At","Updated At"',
   );
   assert.equal(
     rows[1],
-    '"2026-10-14","expense","Market, ""fresh""","Rent","123.45","UPI","\'=HYPERLINK(""https://example.com"")","Confirmed","2026-10-14T12:00:00.000Z","2026-10-14T12:00:00.000Z"',
+    '"2026-10-14","expense","Market, ""fresh""","Rent","123.45","","","","UPI","\'=HYPERLINK(""https://example.com"")","Confirmed","2026-10-14T12:00:00.000Z","2026-10-14T12:00:00.000Z"',
   );
 });
 

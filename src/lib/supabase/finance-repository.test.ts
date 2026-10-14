@@ -44,22 +44,28 @@ test("loads mapped finance records and scopes every query to the signed-in owner
     recurring_occurrences: [],
     monthly_budgets: [],
     budget_allocations: [],
+    user_preferences: [],
   };
   const filters: { table: string; column: string; value: string }[] = [];
   const client = {
     from(table: string) {
       const query = {} as {
         select: () => typeof query;
-        eq: (
-          column: string,
-          value: string,
-        ) => Promise<{ data: object[]; error: null }>;
+        eq: (column: string, value: string) => typeof query;
+        maybeSingle: () => Promise<{ data: object | null; error: null }>;
+        then: (
+          resolve: (value: { data: object[]; error: null }) => unknown,
+        ) => Promise<unknown>;
       };
       query.select = () => query;
       query.eq = (column, value) => {
         filters.push({ table, column, value });
-        return Promise.resolve({ data: rows[table] ?? [], error: null });
+        return query;
       };
+      query.maybeSingle = () =>
+        Promise.resolve({ data: rows[table]?.[0] ?? null, error: null });
+      query.then = (resolve) =>
+        Promise.resolve({ data: rows[table] ?? [], error: null }).then(resolve);
       return query;
     },
   } as unknown as SupabaseClient<Database>;
@@ -90,7 +96,7 @@ test("loads mapped finance records and scopes every query to the signed-in owner
       updatedAt: "2026-10-02T00:00:00.000Z",
     },
   ]);
-  assert.equal(filters.length, 7);
+  assert.equal(filters.length, 8);
   assert.ok(
     filters.every(
       (filter) => filter.column === "user_id" && filter.value === ownerId,

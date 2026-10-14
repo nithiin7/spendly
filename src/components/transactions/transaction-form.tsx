@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Check, Pencil, Plus, X } from "lucide-react";
 import { CalendarPicker } from "@/components/ui/calendar-picker";
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { Modal } from "@/components/ui/modal";
-import { parseRupeesToPaise } from "@/lib/finance-utils";
+import {
+  convertMinorUnits,
+  formatCurrency,
+  getLatestExchangeRate,
+  parseCurrencyAmount,
+  supportedCurrencies,
+} from "@/lib/currency";
 import {
   applyCategorySuggestion,
   suggestCategory,
@@ -17,6 +23,7 @@ import type {
   Transaction,
   TransactionInput,
   TransactionType,
+  DateFormat,
 } from "@/types/finance";
 
 type TransactionFormProps = {
@@ -28,6 +35,8 @@ type TransactionFormProps = {
   onSave: (input: TransactionInput) => Promise<boolean>;
   onAddCategory: (name: string, type: TransactionType) => Promise<Category>;
   onRenameCategory: (id: string, name: string) => Promise<boolean>;
+  defaultCurrency: string;
+  dateFormat: DateFormat;
 };
 
 function localToday(): string {
@@ -44,6 +53,8 @@ export function TransactionForm({
   onSave,
   onAddCategory,
   onRenameCategory,
+  defaultCurrency,
+  dateFormat,
 }: TransactionFormProps) {
   const [type, setType] = useState<TransactionType>(
     transaction?.type ?? initialType,
@@ -61,7 +72,12 @@ export function TransactionForm({
     transaction?.description ?? "",
   );
   const [amount, setAmount] = useState(
-    transaction ? (transaction.amountPaise / 100).toFixed(2) : "",
+    transaction
+      ? ((transaction.originalAmountPaise ?? transaction.amountPaise) / 100).toFixed(2)
+      : "",
+  );
+  const [currency, setCurrency] = useState(
+    transaction?.originalCurrency ?? defaultCurrency,
   );
   const [date, setDate] = useState(transaction?.date ?? localToday());
   const [paymentMethod, setPaymentMethod] = useState(
@@ -73,9 +89,56 @@ export function TransactionForm({
   const [isRenamingCategory, setIsRenamingCategory] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [convertedPreview, setConvertedPreview] = useState<{
+    amountPaise: number;
+    rateDate: string;
+    key: string;
+  } | null>(null);
+  const [previewError, setPreviewError] = useState<{
+    key: string;
+    message: string;
+  } | null>(null);
+  const previewKey = `${amount}|${currency}|${defaultCurrency}|${type}`;
+
+  useEffect(() => {
+    const enteredAmount = parseCurrencyAmount(amount);
+    if (type !== "expense" || currency === defaultCurrency || enteredAmount === null) {
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(() => {
+      void getLatestExchangeRate(currency, defaultCurrency).then(
+        (rate) => {
+          if (!active) return;
+          setConvertedPreview({
+            amountPaise: convertMinorUnits(enteredAmount, rate.rate),
+            rateDate: rate.rateDate,
+            key: previewKey,
+          });
+          setPreviewError(null);
+        },
+        (caught: unknown) => {
+          if (!active) return;
+          setConvertedPreview(null);
+          setPreviewError({
+            key: previewKey,
+            message:
+              caught instanceof Error
+                ? caught.message
+                : "The current exchange rate could not be loaded.",
+          });
+        },
+      );
+    }, 250);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [amount, currency, defaultCurrency, previewKey, type]);
 
   function changeType(nextType: TransactionType) {
     setType(nextType);
+    if (nextType === "income") setCurrency(defaultCurrency);
     const suggestion = suggestCategory(
       description,
       categories,
@@ -104,9 +167,9 @@ export function TransactionForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const amountPaise = parseRupeesToPaise(amount);
-    if (amountPaise === null) {
-      setError("Enter an amount greater than ₹0, with up to two decimal places.");
+    const enteredAmountPaise = parseCurrencyAmount(amount);
+    if (enteredAmountPaise === null) {
+      setError(`Enter an amount greater than 0 ${currency}, with up to two decimal places.`);
       return;
     }
     if (!description.trim()) {
@@ -118,18 +181,35 @@ export function TransactionForm({
       return;
     }
 
-    const saved = await onSave({
-      type,
-      description: description.trim(),
-      amountPaise,
-      categoryId,
-      categorySource,
-      date,
-      ...(paymentMethod.trim() ? { paymentMethod: paymentMethod.trim() } : {}),
-      ...(notes.trim() ? { notes: notes.trim() } : {}),
-    });
-    if (saved) onClose();
-    else setError("This transaction could not be saved. Please try again.");
+    try {
+      const rate = await getLatestExchangeRate(currency, defaultCurrency);
+      const amountPaise = convertMinorUnits(enteredAmountPaise, rate.rate);
+      const saved = await onSave({
+        type,
+        description: description.trim(),
+        amountPaise,
+        categoryId,
+        categorySource,
+        date,
+        ...(currency !== defaultCurrency
+          ? {
+              originalAmountPaise: enteredAmountPaise,
+              originalCurrency: currency,
+              exchangeRateDate: rate.rateDate,
+            }
+          : {}),
+        ...(paymentMethod.trim() ? { paymentMethod: paymentMethod.trim() } : {}),
+        ...(notes.trim() ? { notes: notes.trim() } : {}),
+      });
+      if (saved) onClose();
+      else setError("This transaction could not be saved. Please try again.");
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? `The exchange rate could not be loaded: ${caught.message}`
+          : "The exchange rate could not be loaded. Check your connection and retry.",
+      );
+    }
   }
 
   async function addCategory() {
@@ -210,15 +290,12 @@ export function TransactionForm({
             />
           </label>
           <label className="space-y-1.5">
-            <span className="text-sm font-medium text-ink">Amount (INR)</span>
+            <span className="text-sm font-medium text-ink">Amount ({currency})</span>
             <div className="relative">
-              <span aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">
-                ₹
-              </span>
               <input
                 aria-describedby="amount-hint"
-                aria-label="Amount in rupees"
-                className="form-input pl-8"
+                aria-label={`Amount in ${currency}`}
+                className="form-input"
                 inputMode="decimal"
                 maxLength={17}
                 onChange={(event) => setAmount(event.target.value)}
@@ -231,10 +308,42 @@ export function TransactionForm({
             <span className="block text-xs text-muted" id="amount-hint">
               Enter a positive amount with up to two decimal places.
             </span>
+            {currency !== defaultCurrency &&
+              convertedPreview?.key === previewKey && (
+              <span className="block text-xs font-medium text-forest-800" aria-live="polite">
+                Approximately {formatCurrency(convertedPreview.amountPaise, defaultCurrency)} at the latest rate
+                ({convertedPreview.rateDate}).
+              </span>
+            )}
+            {currency !== defaultCurrency &&
+              previewError?.key === previewKey && (
+              <span className="block text-xs text-red-700" role="status">
+                Rate preview unavailable: {previewError.message}
+              </span>
+            )}
           </label>
+          {type === "expense" && (
+            <label className="space-y-1.5">
+              <span className="text-sm font-medium text-ink">Currency</span>
+              <select
+                className="form-input"
+                onChange={(event) => setCurrency(event.target.value)}
+                value={currency}
+              >
+                {[...new Set([defaultCurrency, ...supportedCurrencies])].map(
+                  (code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
+          )}
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-ink">Date</span>
             <CalendarPicker
+              dateFormat={dateFormat}
               onChange={setDate}
               value={date}
             />

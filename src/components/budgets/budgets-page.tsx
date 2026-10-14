@@ -75,12 +75,14 @@ function ProgressBar({
   budgetPaise,
   utilizationPercent,
   status,
+  currency = "INR",
 }: {
   label: string;
   spentPaise: number;
   budgetPaise: number;
   utilizationPercent: number;
   status: "normal" | "approaching" | "over";
+  currency?: string;
 }) {
   const width = Math.min(100, Math.max(0, utilizationPercent));
   const barColor =
@@ -100,8 +102,8 @@ function ProgressBar({
       role="progressbar"
     >
       <div className={`h-full rounded-full transition-[width] ${barColor}`} style={{ width: `${width}%` }} />
-      <span className="sr-only">
-        {formatRupees(spentPaise)} spent of {formatRupees(budgetPaise)}
+      <span className="sr-only" data-financial-value>
+        {formatRupees(spentPaise, currency)} spent of {formatRupees(budgetPaise, currency)}
       </span>
     </div>
   );
@@ -144,6 +146,9 @@ export function BudgetsPage() {
   if (!monthKey) return <FinancePageState error={null} isLoading />;
 
   const { categories, transactions, budgets } = finance.data;
+  const currency = finance.data.preferences?.defaultCurrency ?? "INR";
+  const formatMoney = (amountPaise: number) =>
+    formatRupees(amountPaise, currency);
   const analytics = calculateMonthlyBudgetAnalytics(
     transactions,
     categories,
@@ -271,12 +276,12 @@ export function BudgetsPage() {
         aria-label={`${monthLabel(monthKey)} budget overview`}
         className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
       >
-        <MetricCard label="Actual expenses" value={formatRupees(analytics.expensePaise)} />
+        <MetricCard label="Actual expenses" value={formatMoney(analytics.expensePaise)} />
         <MetricCard
           label="Overall budget"
           value={
             analytics.overall
-              ? formatRupees(analytics.overall.budgetPaise)
+              ? formatMoney(analytics.overall.budgetPaise)
               : "Not set"
           }
         />
@@ -284,7 +289,7 @@ export function BudgetsPage() {
           label="Remaining overall"
           value={
             analytics.overall
-              ? formatRupees(analytics.overall.remainingPaise)
+              ? formatMoney(analytics.overall.remainingPaise)
               : "—"
           }
           negative={Boolean(
@@ -303,9 +308,9 @@ export function BudgetsPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h3 className="font-semibold text-ink">Overall monthly limit</h3>
-              <p className="mt-1 text-sm text-muted">
-                {formatRupees(analytics.overall.spentPaise)} of{" "}
-                {formatRupees(analytics.overall.budgetPaise)} spent ·{" "}
+              <p className="mt-1 text-sm text-muted" data-financial-value>
+                {formatMoney(analytics.overall.spentPaise)} of{" "}
+                {formatMoney(analytics.overall.budgetPaise)} spent ·{" "}
                 {percentageLabel(analytics.overall.utilizationPercent)} used
               </p>
             </div>
@@ -319,13 +324,14 @@ export function BudgetsPage() {
               label="Overall budget"
               spentPaise={analytics.overall.spentPaise}
               status={analytics.overall.status}
+              currency={currency}
               utilizationPercent={analytics.overall.utilizationPercent}
             />
           </div>
-          <p className="mt-3 text-sm text-muted">
+          <p className="mt-3 text-sm text-muted" data-financial-value>
             {analytics.overall.status === "over"
-              ? `${formatRupees(Math.abs(analytics.overall.remainingPaise))} over budget.`
-              : `${formatRupees(analytics.overall.remainingPaise)} remaining.`}
+              ? `${formatMoney(Math.abs(analytics.overall.remainingPaise))} over budget.`
+              : `${formatMoney(analytics.overall.remainingPaise)} remaining.`}
           </p>
           <StatusBanner
             status={analytics.overall.status}
@@ -535,14 +541,14 @@ export function BudgetsPage() {
                           </button>
                         </div>
                         <div className="mt-3 flex flex-wrap justify-between gap-2 text-xs text-muted">
-                          <span>
-                            {formatRupees(analysis?.spentPaise ?? 0)} spent of{" "}
-                            {formatRupees(allocation.amountPaise)}
+                          <span data-financial-value>
+                            {formatMoney(analysis?.spentPaise ?? 0)} spent of{" "}
+                            {formatMoney(allocation.amountPaise)}
                           </span>
-                          <span>
+                          <span data-financial-value>
                             {analysis?.remainingPaise !== null &&
                             analysis?.remainingPaise !== undefined
-                              ? `${formatRupees(analysis.remainingPaise)} remaining`
+                              ? `${formatRupees(analysis.remainingPaise, currency)} remaining`
                               : "No limit"}
                           </span>
                         </div>
@@ -553,6 +559,7 @@ export function BudgetsPage() {
                               label={category?.name ?? "Category"}
                               spentPaise={analysis.spentPaise}
                               status={analysis.status}
+                              currency={currency}
                               utilizationPercent={analysis.utilizationPercent ?? 0}
                             />
                           </div>
@@ -625,7 +632,10 @@ export function BudgetsPage() {
             )}
             {analytics.unbudgetedExpensePaise > 0 && (
               <p className="rounded-xl border border-border bg-canvas/50 px-4 py-3 text-sm text-muted">
-                {formatRupees(analytics.unbudgetedExpensePaise)} spent in
+                <span data-financial-value>
+                  {formatMoney(analytics.unbudgetedExpensePaise)}
+                </span>{" "}
+                spent in
                 categories without a budget this month. These expenses are
                 included in total spending and the overall budget.
               </p>
@@ -637,6 +647,7 @@ export function BudgetsPage() {
       <section className="grid gap-5 lg:grid-cols-2">
         <CategoryInsights
           categories={analytics.highestSpendingCategories}
+          currency={currency}
           empty="No expenses recorded this month."
           heading="Highest-spending categories"
         />
@@ -645,12 +656,14 @@ export function BudgetsPage() {
             ...analytics.overBudgetCategories,
             ...analytics.approachingCategories,
           ]}
+          currency={currency}
           empty="No budgeted categories are approaching or over their limits."
           heading="Categories to watch"
           showStatus
         />
         <CategoryInsights
           categories={analytics.unbudgetedCategories}
+          currency={currency}
           empty="All spending categories have a budget, or no expenses were recorded."
           heading="Spending without a category budget"
         />
@@ -702,7 +715,10 @@ function MetricCard({
   return (
     <article className="rounded-2xl border border-border bg-white p-5 shadow-card">
       <p className="text-sm text-muted">{label}</p>
-      <p className={`mt-2 text-2xl font-semibold tracking-tight ${negative ? "text-red-700" : "text-ink"}`}>
+      <p
+        className={`mt-2 text-2xl font-semibold tracking-tight ${negative ? "text-red-700" : "text-ink"}`}
+        data-financial-value
+      >
         {value}
       </p>
     </article>
@@ -714,12 +730,16 @@ function CategoryInsights({
   heading,
   empty,
   showStatus = false,
+  currency = "INR",
 }: {
   categories: ReturnType<typeof calculateMonthlyBudgetAnalytics>["categories"];
   heading: string;
   empty: string;
   showStatus?: boolean;
+  currency?: string;
 }) {
+  const formatMoney = (amountPaise: number) =>
+    formatRupees(amountPaise, currency);
   return (
     <section className="rounded-2xl border border-border bg-white p-5 shadow-card sm:p-6">
       <h3 className="font-semibold text-ink">{heading}</h3>
@@ -740,8 +760,8 @@ function CategoryInsights({
               {showStatus && category.status && (
                 <span className="text-xs text-muted">{statusLabel(category.status)}</span>
               )}
-              <span className="text-sm font-semibold text-ink">
-                {formatRupees(category.spentPaise)}
+              <span className="text-sm font-semibold text-ink" data-financial-value>
+                {formatMoney(category.spentPaise)}
               </span>
             </li>
           ))}

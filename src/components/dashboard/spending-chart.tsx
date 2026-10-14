@@ -4,9 +4,13 @@ import { formatRupees } from "@/lib/finance-utils";
 export function SpendingChart({
   months,
   currentMonth,
+  currency = "INR",
+  hideBalances = false,
 }: {
   months: SpendingMonth[];
   currentMonth: string;
+  currency?: string;
+  hideBalances?: boolean;
 }) {
   const chartMax = Math.max(...months.map(({ amountPaise }) => amountPaise), 0);
   const selectedSpending =
@@ -54,7 +58,11 @@ export function SpendingChart({
                     isCurrentMonth ? "bg-forest-700" : "bg-sage-200"
                   }`}
                   style={{ height: `${height}%` }}
-                  title={`${label}: ${formatRupees(amountPaise)}`}
+                  title={
+                    hideBalances
+                      ? label
+                      : `${label}: ${formatRupees(amountPaise, currency)}`
+                  }
                 />
               </div>
               <span
@@ -78,8 +86,8 @@ export function SpendingChart({
       <div className="mt-5 flex items-center gap-2 border-t border-border pt-4">
         <span aria-hidden="true" className="size-2 rounded-full bg-forest-700" />
         <span className="text-xs text-muted">Spending</span>
-        <span className="ml-auto text-xs font-semibold text-ink">
-          {formatRupees(selectedSpending)} selected month
+        <span className="ml-auto text-xs font-semibold text-ink" data-financial-value>
+          {formatRupees(selectedSpending, currency)} selected month
         </span>
       </div>
     </section>

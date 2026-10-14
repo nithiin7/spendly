@@ -12,7 +12,10 @@ values
   ('expense-a', '10000000-0000-4000-8000-000000000001', 'Food', '#ffffff', 'expense'),
   ('expense-b', '20000000-0000-4000-8000-000000000002', 'Food', '#ffffff', 'expense');
 
-select plan(6);
+insert into public.user_preferences (user_id, default_currency)
+values ('20000000-0000-4000-8000-000000000002', 'USD');
+
+select plan(8);
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
@@ -21,6 +24,21 @@ select is(
   (select count(*)::integer from public.categories),
   1,
   'users can read only their own categories'
+);
+
+select is(
+  (select count(*)::integer from public.user_preferences),
+  0,
+  'users cannot read another account preferences'
+);
+
+insert into public.user_preferences (user_id, default_currency)
+values ('10000000-0000-4000-8000-000000000001', 'EUR');
+
+select is(
+  (select default_currency from public.user_preferences),
+  'EUR',
+  'users can save their own currency preferences'
 );
 
 insert into public.transactions (

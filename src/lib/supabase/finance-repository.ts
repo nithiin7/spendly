@@ -38,6 +38,14 @@ function ensureSafeAmount(value: number, label: string): number {
   return value;
 }
 
+function optionalSafeAmount(
+  value: number | null | undefined,
+  label: string,
+): number | undefined {
+  if (value === null || value === undefined) return undefined;
+  return ensureSafeAmount(value, label);
+}
+
 function hasChanged<T>(previous: T, next: T): boolean {
   return JSON.stringify(previous) !== JSON.stringify(next);
 }
@@ -209,6 +217,9 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       date: record.date,
       payment_method: record.paymentMethod ?? null,
       notes: record.notes ?? null,
+      original_amount_paise: record.originalAmountPaise ?? null,
+      original_currency: record.originalCurrency ?? null,
+      exchange_rate_date: record.exchangeRateDate ?? null,
       updated_at: record.updatedAt,
     };
   }
@@ -264,6 +275,9 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       end_date: record.endDate ?? null,
       active: record.active,
       notes: record.notes ?? null,
+      original_amount_paise: record.originalAmountPaise ?? null,
+      original_currency: record.originalCurrency ?? null,
+      exchange_rate_date: record.exchangeRateDate ?? null,
       updated_at: record.updatedAt,
     };
   }
@@ -315,6 +329,9 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       category_id: record.categoryId,
       status: record.status,
       transaction_id: record.transactionId ?? null,
+      original_amount_paise: record.originalAmountPaise ?? null,
+      original_currency: record.originalCurrency ?? null,
+      exchange_rate_date: record.exchangeRateDate ?? null,
       updated_at: record.updatedAt,
     };
   }
@@ -365,6 +382,9 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       year: record.year,
       month: record.month,
       overall_limit_paise: record.overallLimitPaise ?? null,
+      original_overall_limit_paise: record.originalOverallLimitPaise ?? null,
+      original_currency: record.originalCurrency ?? null,
+      exchange_rate_date: record.exchangeRateDate ?? null,
       updated_at: record.updatedAt,
     };
   }
@@ -441,6 +461,127 @@ export class SupabaseFinanceRepository implements FinanceRepository {
     this.versions.delete(this.versionKey(table, id));
   }
 
+  private async persistCurrencyConversion(
+    previous: FinanceData,
+    next: FinanceData,
+  ): Promise<void> {
+    if (!next.preferences) {
+      throw new Error("Currency preferences are missing. Reload and retry.");
+    }
+    if (
+      JSON.stringify(previous.categories) !== JSON.stringify(next.categories) ||
+      JSON.stringify(previous.rules) !== JSON.stringify(next.rules) ||
+      previous.transactions.length !== next.transactions.length ||
+      previous.recurringRules.length !== next.recurringRules.length ||
+      previous.recurringOccurrences.length !== next.recurringOccurrences.length ||
+      previous.budgets.length !== next.budgets.length
+    ) {
+      throw new Error("Finance data changed during currency conversion. Reload and retry.");
+    }
+    const previousTransactions = new Map(
+      previous.transactions.map((record) => [record.id, record]),
+    );
+    const previousRules = new Map(
+      previous.recurringRules.map((record) => [record.id, record]),
+    );
+    const previousOccurrences = new Map(
+      previous.recurringOccurrences.map((record) => [record.id, record]),
+    );
+    const previousBudgets = new Map(previous.budgets.map((record) => [record.id, record]));
+    const changes = {
+      transactions: next.transactions.map((record) => {
+        const old = previousTransactions.get(record.id);
+        if (!old) throw new Error("Finance records changed. Reload and retry.");
+        return {
+          id: record.id,
+          expected_updated_at: old.updatedAt,
+          amount_paise: record.amountPaise,
+          original_amount_paise: record.originalAmountPaise ?? null,
+          original_currency: record.originalCurrency ?? null,
+          exchange_rate_date: record.exchangeRateDate ?? null,
+        };
+      }),
+      recurring_rules: next.recurringRules.map((record) => {
+        const old = previousRules.get(record.id);
+        if (!old) throw new Error("Finance records changed. Reload and retry.");
+        return {
+          id: record.id,
+          expected_updated_at: old.updatedAt,
+          amount_paise: record.amountPaise,
+          original_amount_paise: record.originalAmountPaise ?? null,
+          original_currency: record.originalCurrency ?? null,
+          exchange_rate_date: record.exchangeRateDate ?? null,
+        };
+      }),
+      recurring_occurrences: next.recurringOccurrences.map((record) => {
+        const old = previousOccurrences.get(record.id);
+        if (!old) throw new Error("Finance records changed. Reload and retry.");
+        return {
+          id: record.id,
+          expected_updated_at: old.updatedAt,
+          amount_paise: record.amountPaise,
+          original_amount_paise: record.originalAmountPaise ?? null,
+          original_currency: record.originalCurrency ?? null,
+          exchange_rate_date: record.exchangeRateDate ?? null,
+        };
+      }),
+      monthly_budgets: next.budgets.map((record) => {
+        const old = previousBudgets.get(record.id);
+        if (!old) throw new Error("Finance records changed. Reload and retry.");
+        return {
+          id: record.id,
+          expected_updated_at: old.updatedAt,
+          overall_limit_paise: record.overallLimitPaise ?? null,
+          original_overall_limit_paise: record.originalOverallLimitPaise ?? null,
+          original_currency: record.originalCurrency ?? null,
+          exchange_rate_date: record.exchangeRateDate ?? null,
+        };
+      }),
+      budget_allocations: next.budgets.flatMap((budget) => {
+        const oldBudget = previousBudgets.get(budget.id);
+        if (!oldBudget) throw new Error("Finance records changed. Reload and retry.");
+        const oldByCategory = new Map(
+          oldBudget.allocations.map((allocation) => [
+            allocation.categoryId,
+            allocation,
+          ]),
+        );
+        return budget.allocations.map((allocation) => {
+          const old = oldByCategory.get(allocation.categoryId);
+          if (!old) throw new Error("Finance records changed. Reload and retry.");
+          return {
+            budget_id: budget.id,
+            category_id: allocation.categoryId,
+            expected_amount_paise: old.amountPaise,
+            amount_paise: allocation.amountPaise,
+            original_amount_paise: allocation.originalAmountPaise ?? null,
+            original_currency: allocation.originalCurrency ?? null,
+            exchange_rate_date: allocation.exchangeRateDate ?? null,
+          };
+        });
+      }),
+      preferences: {
+        default_currency: next.preferences.defaultCurrency,
+        date_format: next.preferences.dateFormat,
+        hide_balances: next.preferences.hideBalances,
+      },
+    };
+    if (
+      changes.budget_allocations.length !==
+      previous.budgets.reduce(
+        (total, budget) => total + budget.allocations.length,
+        0,
+      )
+    ) {
+      throw new Error("Finance records changed. Reload and retry.");
+    }
+    const { error } = await this.client.rpc("apply_currency_conversion", {
+      p_changes: changes,
+    });
+    databaseError(error, "Converting saved amounts");
+    await this.loadFinanceData();
+  }
+
   private async loadRows() {
     const [
       categoryRequest,
@@ -450,6 +591,7 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       occurrenceRequest,
       budgetRequest,
       allocationRequest,
+      preferencesRequest,
     ] = await Promise.all([
       this.client.from("categories").select("*").eq("user_id", this.userId),
       this.client.from("category_rules").select("*").eq("user_id", this.userId),
@@ -458,6 +600,7 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       this.client.from("recurring_occurrences").select("*").eq("user_id", this.userId),
       this.client.from("monthly_budgets").select("*").eq("user_id", this.userId),
       this.client.from("budget_allocations").select("*").eq("user_id", this.userId),
+      this.client.from("user_preferences").select("*").eq("user_id", this.userId).maybeSingle(),
     ]);
     databaseError(categoryRequest.error, "Loading cloud finance data");
     databaseError(ruleRequest.error, "Loading cloud finance data");
@@ -466,6 +609,7 @@ export class SupabaseFinanceRepository implements FinanceRepository {
     databaseError(occurrenceRequest.error, "Loading cloud finance data");
     databaseError(budgetRequest.error, "Loading cloud finance data");
     databaseError(allocationRequest.error, "Loading cloud finance data");
+    databaseError(preferencesRequest.error, "Loading cloud finance preferences");
     return {
       categories: categoryRequest.data ?? [],
       rules: ruleRequest.data ?? [],
@@ -474,6 +618,7 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       recurringOccurrences: occurrenceRequest.data ?? [],
       budgets: budgetRequest.data ?? [],
       allocations: allocationRequest.data ?? [],
+      preferences: preferencesRequest.data,
     };
   }
 
@@ -499,6 +644,11 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       allocations.push({
         categoryId: row.category_id,
         amountPaise: ensureSafeAmount(row.amount_paise, "budget allocation"),
+        ...(optionalSafeAmount(row.original_amount_paise, "budget allocation original") !== undefined
+          ? { originalAmountPaise: optionalSafeAmount(row.original_amount_paise, "budget allocation original") }
+          : {}),
+        ...(row.original_currency ? { originalCurrency: row.original_currency } : {}),
+        ...(row.exchange_rate_date ? { exchangeRateDate: row.exchange_rate_date } : {}),
       });
       allocationMap.set(row.budget_id, allocations);
     }
@@ -512,6 +662,17 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         type: row.type,
         isFallback: row.is_fallback,
       })),
+      preferences: rows.preferences
+        ? {
+            defaultCurrency: rows.preferences.default_currency,
+            dateFormat: rows.preferences.date_format,
+            hideBalances: rows.preferences.hide_balances,
+          }
+        : {
+            defaultCurrency: "INR",
+            dateFormat: "DD/MM/YYYY",
+            hideBalances: false,
+          },
       rules: rows.rules.map((row) => ({
         id: row.id,
         categoryId: row.category_id,
@@ -524,6 +685,11 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         type: row.type,
         description: row.description,
         amountPaise: ensureSafeAmount(row.amount_paise, "transaction"),
+        ...(optionalSafeAmount(row.original_amount_paise, "transaction original") !== undefined
+          ? { originalAmountPaise: optionalSafeAmount(row.original_amount_paise, "transaction original") }
+          : {}),
+        ...(row.original_currency ? { originalCurrency: row.original_currency } : {}),
+        ...(row.exchange_rate_date ? { exchangeRateDate: row.exchange_rate_date } : {}),
         categoryId: row.category_id,
         categorySource: row.category_source,
         date: row.date,
@@ -537,6 +703,11 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         description: row.description,
         type: row.type,
         amountPaise: ensureSafeAmount(row.amount_paise, "recurring rule"),
+        ...(optionalSafeAmount(row.original_amount_paise, "recurring rule original") !== undefined
+          ? { originalAmountPaise: optionalSafeAmount(row.original_amount_paise, "recurring rule original") }
+          : {}),
+        ...(row.original_currency ? { originalCurrency: row.original_currency } : {}),
+        ...(row.exchange_rate_date ? { exchangeRateDate: row.exchange_rate_date } : {}),
         categoryId: row.category_id,
         frequency: row.frequency,
         ...(row.interval !== null ? { interval: row.interval } : {}),
@@ -556,6 +727,11 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         description: row.description,
         type: row.type,
         amountPaise: ensureSafeAmount(row.amount_paise, "recurring occurrence"),
+        ...(optionalSafeAmount(row.original_amount_paise, "occurrence original") !== undefined
+          ? { originalAmountPaise: optionalSafeAmount(row.original_amount_paise, "occurrence original") }
+          : {}),
+        ...(row.original_currency ? { originalCurrency: row.original_currency } : {}),
+        ...(row.exchange_rate_date ? { exchangeRateDate: row.exchange_rate_date } : {}),
         categoryId: row.category_id,
         status: row.status,
         ...(row.transaction_id ? { transactionId: row.transaction_id } : {}),
@@ -569,6 +745,11 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         ...(row.overall_limit_paise !== null
           ? { overallLimitPaise: ensureSafeAmount(row.overall_limit_paise, "monthly budget") }
           : {}),
+        ...(optionalSafeAmount(row.original_overall_limit_paise, "monthly budget original") !== undefined
+          ? { originalOverallLimitPaise: optionalSafeAmount(row.original_overall_limit_paise, "monthly budget original") }
+          : {}),
+        ...(row.original_currency ? { originalCurrency: row.original_currency } : {}),
+        ...(row.exchange_rate_date ? { exchangeRateDate: row.exchange_rate_date } : {}),
         allocations: allocationMap.get(row.id) ?? [],
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -583,6 +764,35 @@ export class SupabaseFinanceRepository implements FinanceRepository {
   }
 
   async persistChanges(previous: FinanceData, next: FinanceData): Promise<void> {
+    const sameIds = <T extends { id: string }>(before: T[], after: T[]) =>
+      before.length === after.length &&
+      before.every((record) => after.some((candidate) => candidate.id === record.id));
+    const currencyOnlyChange =
+      sameIds(previous.categories, next.categories) &&
+      sameIds(previous.rules, next.rules) &&
+      sameIds(previous.transactions, next.transactions) &&
+      sameIds(previous.recurringRules, next.recurringRules) &&
+      sameIds(previous.recurringOccurrences, next.recurringOccurrences) &&
+      sameIds(previous.budgets, next.budgets) &&
+      previous.budgets.every((budget) => {
+        const changed = next.budgets.find((item) => item.id === budget.id);
+        return (
+          changed?.allocations.length === budget.allocations.length &&
+          budget.allocations.every((allocation) =>
+            changed.allocations.some(
+              (item) => item.categoryId === allocation.categoryId,
+            ),
+          )
+        );
+      });
+    if (
+      currencyOnlyChange &&
+      previous.preferences?.defaultCurrency !==
+      next.preferences?.defaultCurrency
+    ) {
+      await this.persistCurrencyConversion(previous, next);
+      return;
+    }
     const categories = changedRecords(previous.categories, next.categories);
     const rules = changedRecords(previous.rules, next.rules);
     const transactions = changedRecords(previous.transactions, next.transactions);
@@ -620,6 +830,9 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         category_id: allocation.categoryId,
         category_type: "expense" as const,
         amount_paise: allocation.amountPaise,
+        original_amount_paise: allocation.originalAmountPaise ?? null,
+        original_currency: allocation.originalCurrency ?? null,
+        exchange_rate_date: allocation.exchangeRateDate ?? null,
       })),
     );
     const nextAllocations = next.budgets.flatMap((budget) =>
@@ -630,6 +843,9 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         category_id: allocation.categoryId,
         category_type: "expense" as const,
         amount_paise: allocation.amountPaise,
+        original_amount_paise: allocation.originalAmountPaise ?? null,
+        original_currency: allocation.originalCurrency ?? null,
+        exchange_rate_date: allocation.exchangeRateDate ?? null,
       })),
     );
     const allocationDiff = changedRecords(
@@ -642,13 +858,21 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         budget_id: record.budget_id,
         category_id: record.category_id,
         amount_paise: record.amount_paise,
+        original_amount_paise: record.original_amount_paise,
+        original_currency: record.original_currency,
+        exchange_rate_date: record.exchange_rate_date,
       });
       databaseError(error, "Saving category budget");
     }
     for (const { previous: oldRecord, next: record } of allocationDiff.updated) {
       const { data, error } = await this.client
         .from("budget_allocations")
-        .update({ amount_paise: record.amount_paise })
+        .update({
+          amount_paise: record.amount_paise,
+          original_amount_paise: record.original_amount_paise,
+          original_currency: record.original_currency,
+          exchange_rate_date: record.exchange_rate_date,
+        })
         .eq("user_id", this.userId)
         .eq("budget_id", record.budget_id)
         .eq("category_id", record.category_id)
@@ -689,6 +913,16 @@ export class SupabaseFinanceRepository implements FinanceRepository {
     }
     for (const record of categories.deleted) {
       await this.deleteOwnedRecord("categories", record.id);
+    }
+
+    if (hasChanged(previous.preferences, next.preferences) && next.preferences) {
+      const { error } = await this.client.from("user_preferences").upsert({
+        user_id: this.userId,
+        default_currency: next.preferences.defaultCurrency,
+        date_format: next.preferences.dateFormat,
+        hide_balances: next.preferences.hideBalances,
+      });
+      databaseError(error, "Saving user preferences");
     }
   }
 }

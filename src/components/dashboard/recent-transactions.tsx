@@ -1,23 +1,21 @@
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { formatRupees } from "@/lib/finance-utils";
-import type { Category, Transaction } from "@/types/finance";
-
-function displayDate(date: string): string {
-  return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-  });
-}
+import { formatFinanceDate } from "@/lib/currency";
+import type { Category, DateFormat, Transaction } from "@/types/finance";
 
 export function RecentTransactions({
   transactions,
   categories,
   onAdd,
+  currency = "INR",
+  dateFormat = "DD/MM/YYYY",
 }: {
   transactions: Transaction[];
   categories: Category[];
   onAdd: () => void;
+  currency?: string;
+  dateFormat?: DateFormat;
 }) {
   const recentTransactions = [...transactions]
     .sort(
@@ -76,7 +74,7 @@ export function RecentTransactions({
                     {transaction.description}
                   </p>
                   <p className="mt-0.5 truncate text-xs text-muted">
-                    {category?.name ?? "Uncategorized"} · {displayDate(transaction.date)}
+                    {category?.name ?? "Uncategorized"} · {formatFinanceDate(transaction.date, dateFormat)}
                   </p>
                 </div>
                 <span
@@ -84,8 +82,10 @@ export function RecentTransactions({
                     isIncome ? "text-positive" : "text-ink"
                   }`}
                 >
-                  {isIncome ? "+" : "−"}
-                  {formatRupees(transaction.amountPaise)}
+                  <span data-financial-value>
+                    {isIncome ? "+" : "−"}
+                    {formatRupees(transaction.amountPaise, currency)}
+                  </span>
                 </span>
               </li>
             );

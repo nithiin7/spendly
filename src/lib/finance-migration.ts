@@ -108,6 +108,13 @@ export function reconcileLocalFinanceData(
   const validatedLocal = parseFinanceBackup(
     JSON.stringify(createFinanceBackup(local, "2000-01-01T00:00:00.000Z")),
   ).data;
+  const cloudCurrency = current.preferences?.defaultCurrency ?? "INR";
+  const browserCurrency = validatedLocal.preferences?.defaultCurrency ?? "INR";
+  if (cloudCurrency !== browserCurrency) {
+    throw new Error(
+      `Cannot merge ${browserCurrency} browser data into ${cloudCurrency} account data. Set both datasets to the same default currency first.`,
+    );
+  }
   const categoryIds = new Map<string, string>();
   const categories = [...current.categories];
   const categoriesByName = new Map(
@@ -279,6 +286,9 @@ export function reconcileLocalFinanceData(
     JSON.stringify(
       createFinanceBackup(
         {
+          ...(current.preferences
+            ? { preferences: current.preferences }
+            : {}),
           categories,
           rules,
           transactions,

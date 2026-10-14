@@ -13,6 +13,7 @@ import {
   updateCategoryRule,
 } from "@/lib/categorization";
 import { removeTransaction } from "@/lib/finance-utils";
+import { convertFinanceDataCurrency } from "@/lib/finance-currency";
 import {
   copyPreviousMonthAllocations,
   isValidMonthKey,
@@ -50,6 +51,7 @@ import type {
   CategoryBudgetAllocation,
   CategoryRuleInput,
   FinanceData,
+  FinancePreferences,
   MonthlyBudget,
   RecurringOccurrence,
   RecurringRule,
@@ -86,6 +88,11 @@ function cloneDefaultFinanceData(): FinanceData {
     recurringRules: [],
     recurringOccurrences: [],
     budgets: [],
+    preferences: {
+      defaultCurrency: "INR",
+      dateFormat: "DD/MM/YYYY",
+      hideBalances: false,
+    },
   };
 }
 
@@ -1126,10 +1133,22 @@ export function useFinanceDataState() {
 
   const resetDemoData = useCallback(async (): Promise<boolean> => {
     try {
+      const preferences = dataRef.current?.preferences ?? {
+        defaultCurrency: "INR",
+        dateFormat: "DD/MM/YYYY" as const,
+        hideBalances: false,
+      };
+      const samplePreferences = {
+        ...preferences,
+        defaultCurrency: "INR",
+      };
       if (!localModeRef.current) {
-        return await commit(getDemoFinanceData());
+        return await commit({
+          ...getDemoFinanceData(),
+          preferences: samplePreferences,
+        });
       }
-      const data = resetFinanceData();
+      const data = resetFinanceData(samplePreferences);
       dataRef.current = data;
       setState((current) => ({
         ...current,
@@ -1153,10 +1172,15 @@ export function useFinanceDataState() {
 
   const clearAllData = useCallback(async (): Promise<boolean> => {
     try {
+      const preferences = dataRef.current?.preferences ?? {
+        defaultCurrency: "INR",
+        dateFormat: "DD/MM/YYYY" as const,
+        hideBalances: false,
+      };
       if (!localModeRef.current) {
-        return await commit(cloneDefaultFinanceData());
+        return await commit({ ...cloneDefaultFinanceData(), preferences });
       }
-      const data = clearFinanceData();
+      const data = clearFinanceData(preferences);
       dataRef.current = data;
       setState((current) => ({
         ...current,
@@ -1180,6 +1204,51 @@ export function useFinanceDataState() {
 
   const restoreData = useCallback(
     (data: FinanceData): Promise<boolean> => commit(data),
+    [commit],
+  );
+
+  const updatePreferences = useCallback(
+    async (preferences: FinancePreferences): Promise<boolean> => {
+      const current = dataRef.current;
+      if (!current) return false;
+      return commit({ ...current, preferences });
+    },
+    [commit],
+  );
+
+  const changeDefaultCurrency = useCallback(
+    async (
+      currency: string,
+      preserveOriginalAmounts: boolean,
+      onProgress: (completed: number, total: number) => void,
+    ): Promise<boolean> => {
+      const current = dataRef.current;
+      if (!current) return false;
+      const previousCurrency = current.preferences?.defaultCurrency ?? "INR";
+      try {
+        const converted = await convertFinanceDataCurrency(current, {
+          fromCurrency: previousCurrency,
+          toCurrency: currency,
+          preserveOriginalAmounts,
+          onProgress,
+        });
+        if (dataRef.current !== current) {
+          throw new Error(
+            "Finance data changed while rates were being prepared. Nothing was converted; retry the change.",
+          );
+        }
+        return commit(converted);
+      } catch (error) {
+        setState((state) => ({
+          ...state,
+          error:
+            error instanceof Error
+              ? `Currency change was not saved: ${error.message}`
+              : "Currency change was not saved. Retry when you are online.",
+        }));
+        return false;
+      }
+    },
     [commit],
   );
 
@@ -1213,5 +1282,7 @@ export function useFinanceDataState() {
     resetDemoData,
     clearAllData,
     restoreData,
+    updatePreferences,
+    changeDefaultCurrency,
   };
 }

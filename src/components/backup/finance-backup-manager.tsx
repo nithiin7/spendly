@@ -257,8 +257,11 @@ export function FinanceBackupManager({
                             {transaction.type}
                           </span>
                         </span>
-                        <span className="shrink-0 font-medium text-ink">
-                          {formatRupees(transaction.amountPaise)}
+                        <span className="shrink-0 font-medium text-ink" data-financial-value>
+                          {formatRupees(
+                            transaction.amountPaise,
+                            backup.data.preferences?.defaultCurrency ?? "INR",
+                          )}
                         </span>
                       </li>
                     ))}

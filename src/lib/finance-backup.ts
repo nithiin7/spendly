@@ -13,6 +13,7 @@ import {
   isRecurringRule,
 } from "./recurring-transactions.ts";
 import { isMonthlyBudget, validateMonthlyBudgets } from "./monthly-budgets.ts";
+import { isCurrencyCode } from "./currency.ts";
 
 export const FINANCE_BACKUP_SCHEMA_VERSION = 1;
 
@@ -122,6 +123,18 @@ function isValidTransaction(value: unknown): value is Transaction {
 function validateFinanceData(value: unknown): FinanceData {
   if (!isRecord(value)) {
     throw new Error("Backup data must be an object.");
+  }
+  if (
+    value.preferences !== undefined &&
+    (!isRecord(value.preferences) ||
+      typeof value.preferences.defaultCurrency !== "string" ||
+      !isCurrencyCode(value.preferences.defaultCurrency) ||
+      !["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"].includes(
+        String(value.preferences.dateFormat),
+      ) ||
+      typeof value.preferences.hideBalances !== "boolean")
+  ) {
+    throw new Error("Backup contains invalid display preferences.");
   }
   if (
     !Array.isArray(value.categories) ||
@@ -234,6 +247,9 @@ function validateFinanceData(value: unknown): FinanceData {
   }
 
   return {
+    ...(value.preferences
+      ? { preferences: value.preferences as FinanceData["preferences"] }
+      : {}),
     categories,
     rules: value.rules,
     recurringRules: recurringRules as RecurringRule[],
@@ -319,6 +335,9 @@ function sameTransaction(left: Transaction, right: Transaction): boolean {
     left.date === right.date &&
     left.paymentMethod === right.paymentMethod &&
     left.notes === right.notes &&
+    left.originalAmountPaise === right.originalAmountPaise &&
+    left.originalCurrency === right.originalCurrency &&
+    left.exchangeRateDate === right.exchangeRateDate &&
     left.createdAt === right.createdAt &&
     left.updatedAt === right.updatedAt
   );
@@ -338,6 +357,9 @@ function sameRecurringRule(left: RecurringRule, right: RecurringRule): boolean {
     left.endDate === right.endDate &&
     left.active === right.active &&
     left.notes === right.notes &&
+    left.originalAmountPaise === right.originalAmountPaise &&
+    left.originalCurrency === right.originalCurrency &&
+    left.exchangeRateDate === right.exchangeRateDate &&
     left.createdAt === right.createdAt &&
     left.updatedAt === right.updatedAt
   );
@@ -358,6 +380,9 @@ function sameRecurringOccurrence(
     left.categoryId === right.categoryId &&
     left.status === right.status &&
     left.transactionId === right.transactionId &&
+    left.originalAmountPaise === right.originalAmountPaise &&
+    left.originalCurrency === right.originalCurrency &&
+    left.exchangeRateDate === right.exchangeRateDate &&
     left.createdAt === right.createdAt &&
     left.updatedAt === right.updatedAt
   );
@@ -369,13 +394,22 @@ function sameMonthlyBudget(left: MonthlyBudget, right: MonthlyBudget): boolean {
     left.year === right.year &&
     left.month === right.month &&
     left.overallLimitPaise === right.overallLimitPaise &&
+    left.originalOverallLimitPaise === right.originalOverallLimitPaise &&
+    left.originalCurrency === right.originalCurrency &&
+    left.exchangeRateDate === right.exchangeRateDate &&
     left.createdAt === right.createdAt &&
     left.updatedAt === right.updatedAt &&
     left.allocations.length === right.allocations.length &&
     left.allocations.every(
       (allocation, index) =>
         allocation.categoryId === right.allocations[index].categoryId &&
-        allocation.amountPaise === right.allocations[index].amountPaise,
+        allocation.amountPaise === right.allocations[index].amountPaise &&
+        allocation.originalAmountPaise ===
+          right.allocations[index].originalAmountPaise &&
+        allocation.originalCurrency ===
+          right.allocations[index].originalCurrency &&
+        allocation.exchangeRateDate ===
+          right.allocations[index].exchangeRateDate,
     )
   );
 }
@@ -427,6 +461,15 @@ export function planFinanceRestore(
   }
 
   const validatedCurrent = validateFinanceData(current);
+  const currentCurrency =
+    validatedCurrent.preferences?.defaultCurrency ?? "INR";
+  const incomingCurrency =
+    validatedIncoming.preferences?.defaultCurrency ?? "INR";
+  if (currentCurrency !== incomingCurrency) {
+    throw new Error(
+      `Cannot merge a ${incomingCurrency} backup into ${currentCurrency} data. Change the default currency first or replace the current data.`,
+    );
+  }
   const categories = mergeById(
     validatedCurrent.categories,
     validatedIncoming.categories,
@@ -482,6 +525,9 @@ export function planFinanceRestore(
     sameMonthlyBudget,
   );
   const mergedData = validateFinanceData({
+    ...(validatedCurrent.preferences
+      ? { preferences: validatedCurrent.preferences }
+      : {}),
     categories: categories.records,
     rules: rules.records,
     transactions: transactions.records,

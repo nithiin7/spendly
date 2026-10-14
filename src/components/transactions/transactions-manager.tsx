@@ -22,10 +22,12 @@ import {
   filterAndSortTransactions,
   formatTransactionAmount,
 } from "@/lib/finance-utils";
+import { formatCurrency, formatFinanceDate } from "@/lib/currency";
 import type {
   Category,
   CategoryRule,
   CategoryRuleInput,
+  DateFormat,
   Transaction,
   TransactionInput,
   TransactionType,
@@ -47,6 +49,8 @@ type TransactionsManagerProps = {
   onDeleteRule: (ruleId: string) => Promise<boolean>;
   onResetDemo: () => Promise<boolean>;
   onClearAll: () => Promise<boolean>;
+  defaultCurrency: string;
+  dateFormat: DateFormat;
 };
 
 type Confirmation =
@@ -60,14 +64,6 @@ type TransactionSort =
   | "date-asc"
   | "amount-desc"
   | "amount-asc";
-
-function formatDate(date: string): string {
-  return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 function formatMonth(monthKey: string): string {
   const [year, month] = monthKey.split("-").map(Number);
@@ -92,6 +88,8 @@ export function TransactionsManager({
   onDeleteRule,
   onResetDemo,
   onClearAll,
+  defaultCurrency,
+  dateFormat,
 }: TransactionsManagerProps) {
   const [query, setQuery] = useState("");
   const [month, setMonth] = useState("all");
@@ -158,7 +156,11 @@ export function TransactionsManager({
   }
 
   function exportTransactions() {
-    const csv = createTransactionsCsv(transactions, categories);
+    const csv = createTransactionsCsv(
+      transactions,
+      categories,
+      defaultCurrency,
+    );
     const blob = new Blob([`\uFEFF${csv}`], {
       type: "text/csv;charset=utf-8",
     });
@@ -197,6 +199,8 @@ export function TransactionsManager({
         onSelectType={updateType}
         transactions={transactions}
         categoriesForFilter={filteredCategories}
+        defaultCurrency={defaultCurrency}
+        dateFormat={dateFormat}
       />
       {editing !== null && (
         <TransactionForm
@@ -210,6 +214,8 @@ export function TransactionsManager({
             editing === "new" ? onAdd(input) : onUpdate(editing.id, input)
           }
           transaction={editing === "new" ? undefined : editing}
+          defaultCurrency={defaultCurrency}
+          dateFormat={dateFormat}
         />
       )}
       {confirmation && (
@@ -259,6 +265,8 @@ type TransactionPanelProps = {
   onSelectSort: (value: TransactionSort) => void;
   onSelectType: (value: TransactionType | "all") => void;
   transactions: Transaction[];
+  defaultCurrency: string;
+  dateFormat: DateFormat;
 };
 
 function TransactionPanel({
@@ -282,6 +290,8 @@ function TransactionPanel({
   onSelectSort,
   onSelectType,
   transactions,
+  defaultCurrency,
+  dateFormat,
 }: TransactionPanelProps) {
   const hasActiveFilters =
     Boolean(filters.query) ||
@@ -483,7 +493,7 @@ function TransactionPanel({
                   </span>
                   <span className="pl-12 text-xs text-muted md:pl-0 md:text-sm md:text-ink">
                     <span className="md:hidden">Date · </span>
-                    {formatDate(transaction.date)}
+                    {formatFinanceDate(transaction.date, dateFormat)}
                   </span>
                   <span className="pl-12 text-xs text-muted md:pl-0 md:text-sm">
                     <span className="md:hidden">Paid via · </span>
@@ -499,10 +509,28 @@ function TransactionPanel({
                     <span className="mr-1 font-normal text-muted md:hidden">
                       Amount ·
                     </span>
-                    {formatTransactionAmount(
-                      transaction.amountPaise,
-                      transaction.type,
-                    )}
+                    <span>
+                      <span data-financial-value>
+                        {formatTransactionAmount(
+                          transaction.amountPaise,
+                          transaction.type,
+                          defaultCurrency,
+                        )}
+                      </span>
+                      {transaction.originalAmountPaise !== undefined &&
+                        transaction.originalCurrency && (
+                          <span
+                            className="mt-1 block text-[11px] font-normal text-muted"
+                            data-financial-value
+                          >
+                            Originally{" "}
+                            {formatCurrency(
+                              transaction.originalAmountPaise,
+                              transaction.originalCurrency,
+                            )}
+                          </span>
+                        )}
+                    </span>
                   </span>
                   <div className="flex justify-end gap-1 md:justify-end">
                     <button
