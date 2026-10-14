@@ -143,11 +143,13 @@ function validateFinanceData(value: unknown): FinanceData {
     );
   }
 
-  let combinedAmountPaise = 0;
+  const totalsByType = { income: 0, expense: 0 };
   for (const transaction of value.transactions) {
-    combinedAmountPaise += transaction.amountPaise;
-    if (!Number.isSafeInteger(combinedAmountPaise)) {
-      throw new Error("Backup transaction amounts exceed the safe paise limit.");
+    totalsByType[transaction.type] += transaction.amountPaise;
+    if (!Number.isSafeInteger(totalsByType[transaction.type])) {
+      throw new Error(
+        "Backup transaction amounts exceed the safe paise limit.",
+      );
     }
   }
 
@@ -173,7 +175,10 @@ function validateFinanceData(value: unknown): FinanceData {
   return {
     categories,
     rules: value.rules,
-    transactions: value.transactions,
+    transactions: value.transactions.map((transaction) => ({
+      ...transaction,
+      categorySource: transaction.categorySource ?? "manual",
+    })),
   };
 }
 
@@ -286,30 +291,34 @@ export function planFinanceRestore(
   incoming: FinanceData,
   mode: RestoreMode,
 ): RestorePlan {
+  const validatedIncoming = validateFinanceData(incoming);
   if (mode === "replace") {
     return {
-      data: incoming,
+      data: validatedIncoming,
       added: {
-        categories: incoming.categories.length,
-        rules: incoming.rules.length,
-        transactions: incoming.transactions.length,
+        categories: validatedIncoming.categories.length,
+        rules: validatedIncoming.rules.length,
+        transactions: validatedIncoming.transactions.length,
       },
     };
   }
 
+  const validatedCurrent = validateFinanceData(current);
   const categories = mergeById(
-    current.categories,
-    incoming.categories,
+    validatedCurrent.categories,
+    validatedIncoming.categories,
     "category",
     sameCategory,
   );
   const categoryNames = new Set(
-    current.categories.map(
+    validatedCurrent.categories.map(
       (category) => `${category.type}:${category.name.toLocaleLowerCase()}`,
     ),
   );
-  for (const category of incoming.categories) {
-    const isExistingId = current.categories.some(({ id }) => id === category.id);
+  for (const category of validatedIncoming.categories) {
+    const isExistingId = validatedCurrent.categories.some(
+      ({ id }) => id === category.id,
+    );
     const key = `${category.type}:${category.name.toLocaleLowerCase()}`;
     if (!isExistingId && categoryNames.has(key)) {
       throw new Error(
@@ -319,20 +328,26 @@ export function planFinanceRestore(
     categoryNames.add(key);
   }
 
-  const rules = mergeById(current.rules, incoming.rules, "rule", sameRule);
+  const rules = mergeById(
+    validatedCurrent.rules,
+    validatedIncoming.rules,
+    "rule",
+    sameRule,
+  );
   const transactions = mergeById(
-    current.transactions,
-    incoming.transactions,
+    validatedCurrent.transactions,
+    validatedIncoming.transactions,
     "transaction",
     sameTransaction,
   );
+  const mergedData = validateFinanceData({
+    categories: categories.records,
+    rules: rules.records,
+    transactions: transactions.records,
+  });
 
   return {
-    data: {
-      categories: categories.records,
-      rules: rules.records,
-      transactions: transactions.records,
-    },
+    data: mergedData,
     added: {
       categories: categories.added,
       rules: rules.added,

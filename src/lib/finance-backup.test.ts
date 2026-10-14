@@ -70,12 +70,23 @@ function serializedBackup(financeData = data): string {
 
 test("exports and validates a complete versioned backup in paise", () => {
   const parsed = parseFinanceBackup(serializedBackup());
+  const expected = structuredClone(data);
+  expected.transactions[1].categorySource = "manual";
 
   assert.equal(parsed.schemaVersion, 1);
   assert.equal(parsed.exportedAt, "2026-10-14T10:00:00.000Z");
-  assert.deepEqual(parsed.data, data);
+  assert.deepEqual(parsed.data, expected);
   assert.equal(parsed.data.transactions[0].amountPaise, 12550);
   assert.equal(parsed.data.transactions[1].type, "income");
+});
+
+test("normalizes an omitted optional category source to the storage default", () => {
+  const legacyData = structuredClone(data);
+  delete legacyData.transactions[0].categorySource;
+
+  const parsed = parseFinanceBackup(serializedBackup(legacyData));
+
+  assert.equal(parsed.data.transactions[0].categorySource, "manual");
 });
 
 test("rejects malformed JSON and unsupported backup versions", () => {
@@ -119,9 +130,30 @@ test("rejects missing fields, invalid amounts, duplicate IDs, and broken referen
   );
 });
 
+test("rejects duplicate IDs in category and rule collections", () => {
+  const duplicateCategory = structuredClone(data);
+  duplicateCategory.categories[1].id = duplicateCategory.categories[0].id;
+  assert.throws(
+    () => parseFinanceBackup(serializedBackup(duplicateCategory)),
+    /duplicate category ID/,
+  );
+
+  const duplicateRule = structuredClone(data);
+  duplicateRule.rules.push({ ...duplicateRule.rules[0] });
+  assert.throws(
+    () => parseFinanceBackup(serializedBackup(duplicateRule)),
+    /duplicate rule ID/,
+  );
+});
+
 test("rejects transaction totals that exceed safe integer paise", () => {
   const excessiveTotal = structuredClone(data);
   excessiveTotal.transactions[0].amountPaise = Number.MAX_SAFE_INTEGER;
+  excessiveTotal.transactions.push({
+    ...excessiveTotal.transactions[0],
+    id: "expense-overflow",
+    amountPaise: 1,
+  });
   assert.throws(
     () => parseFinanceBackup(serializedBackup(excessiveTotal)),
     /exceed the safe paise limit/,
@@ -130,8 +162,10 @@ test("rejects transaction totals that exceed safe integer paise", () => {
 
 test("merge deduplicates identical existing records and preserves references", () => {
   const plan = planFinanceRestore(data, data, "merge");
+  const expected = structuredClone(data);
+  expected.transactions[1].categorySource = "manual";
 
-  assert.deepEqual(plan.data, data);
+  assert.deepEqual(plan.data, expected);
   assert.deepEqual(plan.added, { categories: 0, rules: 0, transactions: 0 });
   assert.equal(
     plan.data.transactions[0].categoryId,
@@ -169,12 +203,36 @@ test("merge adds new records without changing current data and rejects conflicts
   assert.deepEqual(current, original);
 });
 
+test("failed imports leave current data unchanged when merged totals overflow", () => {
+  const current: FinanceData = {
+    ...data,
+    transactions: [
+      { ...data.transactions[0], amountPaise: Number.MAX_SAFE_INTEGER - 10 },
+    ],
+  };
+  const original = structuredClone(current);
+  const incoming: FinanceData = {
+    ...data,
+    transactions: [
+      { ...data.transactions[0], id: "new-transaction", amountPaise: 20 },
+    ],
+  };
+
+  assert.throws(
+    () => planFinanceRestore(current, incoming, "merge"),
+    /exceed the safe paise limit/,
+  );
+  assert.deepEqual(current, original);
+});
+
 test("replace plans the backup records without changing current data", () => {
   const current: FinanceData = { categories: [], rules: [], transactions: [] };
   const original = structuredClone(current);
   const plan = planFinanceRestore(current, data, "replace");
+  const expected = structuredClone(data);
+  expected.transactions[1].categorySource = "manual";
 
-  assert.deepEqual(plan.data, data);
+  assert.deepEqual(plan.data, expected);
   assert.deepEqual(plan.added, {
     categories: 2,
     rules: 1,
