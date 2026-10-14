@@ -9,7 +9,7 @@ export function SpendingChart({
   currentMonth: string;
 }) {
   const chartMax = Math.max(...months.map(({ amountPaise }) => amountPaise), 0);
-  const currentSpending =
+  const selectedSpending =
     months.find(({ monthKey }) => monthKey === currentMonth)?.amountPaise ?? 0;
 
   return (
@@ -24,17 +24,17 @@ export function SpendingChart({
             className="text-base font-semibold tracking-[-0.02em] text-ink"
             id="spending-heading"
           >
-            Spending overview
+            Monthly spending trend
           </h2>
-          <p className="mt-1 text-sm text-muted">Your monthly expenses</p>
+          <p className="mt-1 text-sm text-muted">Expense totals across six months</p>
         </div>
         <span className="rounded-lg bg-canvas px-2.5 py-1.5 text-xs font-medium text-muted">
-          Last 6 months
+          Six months
         </span>
       </div>
 
       <div
-        aria-label={`Monthly spending for the last ${months.length} months`}
+        aria-label={`Monthly spending trend for ${months.length} months`}
         className="mt-7 grid h-[188px] grid-cols-6 items-end gap-3 sm:gap-5"
         role="img"
       >
@@ -79,7 +79,7 @@ export function SpendingChart({
         <span aria-hidden="true" className="size-2 rounded-full bg-forest-700" />
         <span className="text-xs text-muted">Spending</span>
         <span className="ml-auto text-xs font-semibold text-ink">
-          {formatRupees(currentSpending)} this month
+          {formatRupees(selectedSpending)} selected month
         </span>
       </div>
     </section>

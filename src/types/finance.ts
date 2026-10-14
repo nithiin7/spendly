@@ -59,3 +59,20 @@ export type SpendingCategory = {
   amountPaise: number;
   color: string;
 };
+
+export type MonthlyFinancialSummary = {
+  incomePaise: number;
+  expensePaise: number;
+  balancePaise: number;
+  savingsRate: number | null;
+  transactionCount: number;
+  largestExpense: Transaction | null;
+  categoryTotals: SpendingCategory[];
+  previousMonth: {
+    incomePaise: number;
+    expensePaise: number;
+    balancePaise: number;
+  };
+  expenseChangePaise: number;
+  expenseChangePercent: number | null;
+};

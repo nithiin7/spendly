@@ -19,6 +19,7 @@ import type {
 
 type TransactionFormProps = {
   transaction?: Transaction;
+  initialType?: TransactionType;
   categories: Category[];
   rules: CategoryRule[];
   onClose: () => void;
@@ -34,6 +35,7 @@ function localToday(): string {
 
 export function TransactionForm({
   transaction,
+  initialType = "expense",
   categories,
   rules,
   onClose,
@@ -42,7 +44,7 @@ export function TransactionForm({
   onRenameCategory,
 }: TransactionFormProps) {
   const [type, setType] = useState<TransactionType>(
-    transaction?.type ?? "expense",
+    transaction?.type ?? initialType,
   );
   const availableCategories = categories.filter(
     (category) => category.type === type,

@@ -2,6 +2,7 @@ import type {
   Category,
   CategoryRule,
   FinanceData,
+  MonthlyFinancialSummary,
   SpendingCategory,
   SpendingMonth,
   Transaction,
@@ -36,6 +37,12 @@ export function getCurrentMonthKey(date = new Date()): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
+export function getPreviousMonthKey(monthKey: string): string {
+  const [year, month] = monthKey.split("-").map(Number);
+  const previousMonth = new Date(Date.UTC(year, month - 2, 1));
+  return `${previousMonth.getUTCFullYear()}-${String(previousMonth.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
 export function getMonthlyTotals(
   transactions: Transaction[],
   monthKey: string,
@@ -57,14 +64,74 @@ export function getMonthlyTotals(
   };
 }
 
+export function getMonthlyFinancialSummary(
+  transactions: Transaction[],
+  categories: Category[],
+  monthKey: string,
+): MonthlyFinancialSummary {
+  const previousMonthKey = getPreviousMonthKey(monthKey);
+  const selectedTransactions = transactions.filter(
+    (transaction) => dateToMonthKey(transaction.date) === monthKey,
+  );
+  const previousTransactions = transactions.filter(
+    (transaction) => dateToMonthKey(transaction.date) === previousMonthKey,
+  );
+  const totalsFor = (items: Transaction[]) => {
+    const result = { incomePaise: 0, expensePaise: 0 };
+    for (const transaction of items) {
+      if (transaction.type === "income") {
+        result.incomePaise += transaction.amountPaise;
+      } else {
+        result.expensePaise += transaction.amountPaise;
+      }
+    }
+    return result;
+  };
+  const currentTotals = totalsFor(selectedTransactions);
+  const previousTotals = totalsFor(previousTransactions);
+  const previousBalancePaise =
+    previousTotals.incomePaise - previousTotals.expensePaise;
+  const largestExpense =
+    selectedTransactions
+      .filter((transaction) => transaction.type === "expense")
+      .sort((left, right) => right.amountPaise - left.amountPaise)[0] ?? null;
+  const expenseChangePaise =
+    currentTotals.expensePaise - previousTotals.expensePaise;
+
+  return {
+    incomePaise: currentTotals.incomePaise,
+    expensePaise: currentTotals.expensePaise,
+    balancePaise: currentTotals.incomePaise - currentTotals.expensePaise,
+    savingsRate:
+      currentTotals.incomePaise > 0
+        ? ((currentTotals.incomePaise - currentTotals.expensePaise) /
+            currentTotals.incomePaise) *
+          100
+        : null,
+    transactionCount: selectedTransactions.length,
+    largestExpense,
+    categoryTotals: getSpendingCategories(transactions, categories, monthKey),
+    previousMonth: {
+      ...previousTotals,
+      balancePaise: previousBalancePaise,
+    },
+    expenseChangePaise,
+    expenseChangePercent:
+      previousTotals.expensePaise > 0
+        ? (expenseChangePaise / previousTotals.expensePaise) * 100
+        : null,
+  };
+}
+
 export function getSpendingMonths(
   transactions: Transaction[],
   count = 6,
-  now = new Date(),
+  endMonthKey = getCurrentMonthKey(),
 ): SpendingMonth[] {
+  const [year, month] = endMonthKey.split("-").map(Number);
   return Array.from({ length: count }, (_, index) => {
-    const monthDate = new Date(now.getFullYear(), now.getMonth() - count + index + 1, 1);
-    const monthKey = getCurrentMonthKey(monthDate);
+    const monthDate = new Date(Date.UTC(year, month - count + index, 1));
+    const monthKey = `${monthDate.getUTCFullYear()}-${String(monthDate.getUTCMonth() + 1).padStart(2, "0")}`;
     const amountPaise = transactions.reduce(
       (sum, transaction) =>
         transaction.type === "expense" &&
@@ -76,7 +143,10 @@ export function getSpendingMonths(
 
     return {
       monthKey,
-      label: new Intl.DateTimeFormat("en", { month: "short" }).format(monthDate),
+      label: new Intl.DateTimeFormat("en", {
+        month: "short",
+        timeZone: "UTC",
+      }).format(monthDate),
       amountPaise,
     };
   });

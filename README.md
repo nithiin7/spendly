@@ -33,6 +33,7 @@ src/
     categories.ts               Default/custom category utilities
     categorization.ts           Local rule matching and category suggestions
     categorization.test.ts      Rule engine unit tests
+    finance-utils.test.ts       Monthly calculation unit tests
     demo-data.ts                Sample finance data for first run/reset
     finance-storage.ts          Validated localStorage repository
     finance-utils.ts            INR formatting and finance calculations
@@ -45,6 +46,17 @@ in a client effect to keep browser APIs out of server rendering; if saved data
 is invalid or storage is unavailable, Spendly reports the problem instead of
 silently replacing it. The transaction panel includes an explicit confirmation
 before resetting to the sample dataset.
+
+## Monthly dashboard and income
+
+Income is recorded as an ordinary income transaction with a date, description,
+and positive amount; salary and other income use the same flow. Edit an existing
+income row to update it: edits replace that transaction by its ID instead of
+creating a second entry. Dashboard calculations use only the selected calendar
+month and year, keep income separate from expenses, and derive balance, savings
+rate, category totals, transaction count, largest expense, and the expense
+comparison with the previous month. Amount calculations use paise; formatting
+is applied only when displaying values.
 
 ## Automatic categorization
 
@@ -63,10 +75,9 @@ outside the browser.
 
 ## Next steps
 
-1. Add focused automated tests for finance calculations, validation, and
-   persistence edge cases.
-2. Add salary and monthly budget settings, then derive remaining-budget views.
-3. Consider a charting library when interactive chart requirements justify it.
+1. Add focused automated tests for validation and persistence edge cases.
+2. Add monthly budget settings and derive remaining-budget views.
+3. Consider a charting library if interactive chart requirements justify it.
 
 ## Checks
 

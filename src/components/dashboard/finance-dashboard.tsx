@@ -1,25 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
+  Plus,
   PiggyBank,
   Wallet,
 } from "lucide-react";
 import { CategoryBreakdown } from "@/components/dashboard/category-breakdown";
+import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
 import { SummaryCard } from "@/components/dashboard/summary-card";
+import { TransactionForm } from "@/components/transactions/transaction-form";
 import { TransactionsManager } from "@/components/transactions/transactions-manager";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { Modal } from "@/components/ui/modal";
 import {
   formatRupees,
   getCurrentMonthKey,
-  getMonthlyTotals,
-  getSpendingCategories,
+  getMonthlyFinancialSummary,
   getSpendingMonths,
 } from "@/lib/finance-utils";
+import type { TransactionType } from "@/types/finance";
+
+const subscribeToMonthChanges = () => () => {};
 
 function LoadingDashboard() {
   return (
@@ -47,6 +52,14 @@ export function FinanceDashboard() {
   const finance = useFinanceData();
   const [resetError, setResetError] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const currentMonth = useSyncExternalStore(
+    subscribeToMonthChanges,
+    getCurrentMonthKey,
+    () => "",
+  );
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [quickCreateType, setQuickCreateType] =
+    useState<TransactionType | null>(null);
 
   if (finance.isLoading) return <LoadingDashboard />;
 
@@ -119,23 +132,38 @@ export function FinanceDashboard() {
     );
   }
 
+  const monthKey = selectedMonth ?? currentMonth;
+  if (!monthKey) return <LoadingDashboard />;
+
   const { categories, transactions } = finance.data;
-  const monthKey = getCurrentMonthKey();
-  const totals = getMonthlyTotals(transactions, monthKey);
-  const spendingMonths = getSpendingMonths(transactions);
-  const spendingCategories = getSpendingCategories(
+  const summary = getMonthlyFinancialSummary(
     transactions,
     categories,
     monthKey,
   );
+  const spendingMonths = getSpendingMonths(transactions, 6, monthKey);
+  const selectedMonthLabel = new Date(
+    Number(monthKey.slice(0, 4)),
+    Number(monthKey.slice(5, 7)) - 1,
+    1,
+  ).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
   const savingsRate =
-    totals.incomePaise > 0
-      ? (totals.savingsPaise / totals.incomePaise) * 100
-      : 0;
-  const currentMonthLabel = new Intl.DateTimeFormat("en-IN", {
-    month: "long",
-  }).format(new Date());
-  const currentYear = new Date().getFullYear();
+    summary.savingsRate === null
+      ? "—"
+      : `${summary.savingsRate.toLocaleString("en-IN", { maximumFractionDigits: 1 })}%`;
+  const expenseComparison =
+    summary.previousMonth.expensePaise > 0
+      ? summary.expenseChangePaise === 0
+        ? "Same spending as last month"
+        : `${formatRupees(Math.abs(summary.expenseChangePaise))} ${
+            summary.expenseChangePaise > 0 ? "more" : "less"
+          } than last month`
+      : summary.expensePaise > 0
+        ? "No expenses last month"
+        : "No expenses this month";
+  const largestExpenseLabel = summary.largestExpense
+    ? `${summary.largestExpense.description} · ${formatRupees(summary.largestExpense.amountPaise)}`
+    : "No expenses recorded";
 
   return (
     <div className="space-y-7" id="overview">
@@ -152,12 +180,37 @@ export function FinanceDashboard() {
             Your money, in perspective
           </h2>
           <p className="mt-1.5 text-sm text-muted">
-            Here&apos;s your financial snapshot for {currentMonthLabel}.
+            Your financial snapshot for {selectedMonthLabel}.
           </p>
         </div>
-        <p className="pb-1 text-xs text-muted">
-          {currentMonthLabel} {currentYear} · INR
-        </p>
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <label className="sr-only" htmlFor="dashboard-month">
+            Select dashboard month
+          </label>
+          <input
+            className="form-input w-full sm:w-auto"
+            id="dashboard-month"
+            onChange={(event) => setSelectedMonth(event.target.value)}
+            type="month"
+            value={monthKey}
+          />
+          <button
+            className="button-secondary"
+            onClick={() => setQuickCreateType("income")}
+            type="button"
+          >
+            <Plus aria-hidden="true" className="size-4" />
+            Add income
+          </button>
+          <button
+            className="button-primary"
+            onClick={() => setQuickCreateType("expense")}
+            type="button"
+          >
+            <Plus aria-hidden="true" className="size-4" />
+            Add expense
+          </button>
+        </div>
       </div>
 
       {finance.error && (
@@ -175,40 +228,99 @@ export function FinanceDashboard() {
       >
         <SummaryCard
           icon={Wallet}
-          label="Net this month"
+          label="Remaining balance"
           note="Income minus expenses"
-          tone={totals.savingsPaise >= 0 ? "positive" : "default"}
-          value={formatRupees(totals.savingsPaise)}
+          tone={summary.balancePaise >= 0 ? "positive" : "default"}
+          value={formatRupees(summary.balancePaise)}
         />
         <SummaryCard
           icon={ArrowDownToLine}
-          label="Income this month"
+          label="Total income"
           note="Salary and other income"
-          value={formatRupees(totals.incomePaise)}
+          value={formatRupees(summary.incomePaise)}
         />
         <SummaryCard
           icon={ArrowUpFromLine}
-          label="Spent this month"
+          label="Total expenses"
           note="Across all expense categories"
-          value={formatRupees(totals.expensePaise)}
+          value={formatRupees(summary.expensePaise)}
         />
         <SummaryCard
           icon={PiggyBank}
           label="Savings rate"
           note={
-            totals.incomePaise > 0
+            summary.incomePaise > 0
               ? "Net savings as a share of income"
               : "Add income to calculate your rate"
           }
-          tone="positive"
-          value={`${savingsRate.toLocaleString("en-IN", { maximumFractionDigits: 1 })}%`}
+          tone={summary.balancePaise >= 0 ? "positive" : "default"}
+          value={savingsRate}
         />
+      </section>
+
+      <section
+        aria-label="Monthly details and previous month comparison"
+        className="grid gap-3 sm:grid-cols-3"
+      >
+        <article className="rounded-xl border border-border bg-white px-4 py-3.5">
+          <p className="text-xs font-medium text-muted">Transactions</p>
+          <p className="mt-1 text-sm font-semibold text-ink">
+            {summary.transactionCount}
+          </p>
+        </article>
+        <article className="min-w-0 rounded-xl border border-border bg-white px-4 py-3.5">
+          <p className="text-xs font-medium text-muted">Largest expense</p>
+          <p className="mt-1 truncate text-sm font-semibold text-ink" title={largestExpenseLabel}>
+            {largestExpenseLabel}
+          </p>
+        </article>
+        <article className="rounded-xl border border-border bg-white px-4 py-3.5">
+          <p className="text-xs font-medium text-muted">Compared with last month</p>
+          <p className="mt-1 text-sm font-semibold text-ink">
+            {expenseComparison}
+          </p>
+        </article>
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.85fr)]">
         <SpendingChart currentMonth={monthKey} months={spendingMonths} />
-        <CategoryBreakdown categories={spendingCategories} />
+        <CategoryBreakdown categories={summary.categoryTotals} />
       </div>
+
+      {transactions.length === 0 && (
+        <section className="rounded-2xl border border-sage-200 bg-sage-100/70 px-5 py-6 sm:px-7">
+          <h2 className="text-base font-semibold text-forest-900">
+            Start with your first income or expense
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted">
+            Add your salary or another income source, then record expenses to
+            see your monthly balance and spending patterns. Your entries stay
+            in this browser.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              className="button-secondary"
+              onClick={() => setQuickCreateType("income")}
+              type="button"
+            >
+              Add income
+            </button>
+            <button
+              className="button-primary"
+              onClick={() => setQuickCreateType("expense")}
+              type="button"
+            >
+              Add expense
+            </button>
+          </div>
+        </section>
+      )}
+
+      <RecentTransactions
+        categories={categories}
+        onAdd={() => setQuickCreateType("expense")}
+        transactions={transactions}
+      />
 
       <TransactionsManager
         categories={categories}
@@ -224,6 +336,17 @@ export function FinanceDashboard() {
         onUpdate={finance.updateTransaction}
         transactions={transactions}
       />
+      {quickCreateType && (
+        <TransactionForm
+          categories={categories}
+          initialType={quickCreateType}
+          onAddCategory={finance.addCustomCategory}
+          onClose={() => setQuickCreateType(null)}
+          onRenameCategory={finance.editCategory}
+          onSave={finance.addTransaction}
+          rules={finance.data.rules}
+        />
+      )}
     </div>
   );
 }
