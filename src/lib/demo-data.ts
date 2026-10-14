@@ -1,57 +1,110 @@
-import type {
-  SpendingCategory,
-  SpendingMonth,
-  Transaction,
-} from "@/types/finance";
+import { defaultCategories } from "@/lib/categories";
+import type { FinanceData } from "@/types/finance";
 
-export const monthlySpending: SpendingMonth[] = [
-  { label: "May", amount: 1760 },
-  { label: "Jun", amount: 2140 },
-  { label: "Jul", amount: 1880 },
-  { label: "Aug", amount: 2460 },
-  { label: "Sep", amount: 2010 },
-  { label: "Oct", amount: 2140 },
-];
+function makeDemoFinanceData(): FinanceData {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const previousMonthDay = new Date(now.getFullYear(), now.getMonth(), 0);
+  const formatDate = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const createdAt = now.toISOString();
+  const dates = {
+    today: formatDate(today),
+    first: formatDate(firstOfMonth),
+    previous: formatDate(previousMonthDay),
+  };
 
-export const spendingCategories: SpendingCategory[] = [
-  { label: "Housing", amount: 980, color: "#214c3a" },
-  { label: "Food & drink", amount: 462, color: "#70927d" },
-  { label: "Transport", amount: 286, color: "#a9bcae" },
-  { label: "Shopping", amount: 248, color: "#d1a56f" },
-  { label: "Health", amount: 164, color: "#d9dfd8" },
-];
+  return {
+    categories: defaultCategories,
+    transactions: [
+      {
+        id: "demo-1",
+        type: "expense",
+        description: "Monthly rent",
+        amountPaise: 3200000,
+        categoryId: "category-1",
+        date: dates.first,
+        paymentMethod: "Bank transfer",
+        createdAt,
+        updatedAt: createdAt,
+      },
+      {
+        id: "demo-2",
+        type: "income",
+        description: "Monthly salary",
+        amountPaise: 9500000,
+        categoryId: "category-15",
+        date: dates.first,
+        paymentMethod: "Bank transfer",
+        createdAt,
+        updatedAt: createdAt,
+      },
+      {
+        id: "demo-3",
+        type: "expense",
+        description: "Weekly groceries",
+        amountPaise: 284650,
+        categoryId: "category-3",
+        date: dates.today,
+        paymentMethod: "UPI",
+        createdAt,
+        updatedAt: createdAt,
+      },
+      {
+        id: "demo-4",
+        type: "expense",
+        description: "Metro card recharge",
+        amountPaise: 120000,
+        categoryId: "category-6",
+        date: dates.today,
+        paymentMethod: "UPI",
+        createdAt,
+        updatedAt: createdAt,
+      },
+      {
+        id: "demo-5",
+        type: "expense",
+        description: "Electricity bill",
+        amountPaise: 186430,
+        categoryId: "category-8",
+        date: dates.today,
+        paymentMethod: "UPI",
+        createdAt,
+        updatedAt: createdAt,
+      },
+      {
+        id: "demo-6",
+        type: "expense",
+        description: "Dinner with friends",
+        amountPaise: 147580,
+        categoryId: "category-4",
+        date: dates.today,
+        paymentMethod: "Card",
+        createdAt,
+        updatedAt: createdAt,
+      },
+      {
+        id: "demo-7",
+        type: "expense",
+        description: "Cab to the airport",
+        amountPaise: 76500,
+        categoryId: "category-5",
+        date: dates.previous,
+        paymentMethod: "UPI",
+        createdAt,
+        updatedAt: createdAt,
+      },
+    ],
+  };
+}
 
-export const recentTransactions: Transaction[] = [
-  {
-    id: "tx-1",
-    name: "Whole Foods Market",
-    category: "Food & drink",
-    date: "Today, 10:42 AM",
-    amount: 68.42,
-    direction: "expense",
-  },
-  {
-    id: "tx-2",
-    name: "Monthly paycheck",
-    category: "Income",
-    date: "Oct 12, 2026",
-    amount: 5200,
-    direction: "income",
-  },
-  {
-    id: "tx-3",
-    name: "City parking",
-    category: "Transport",
-    date: "Oct 11, 2026",
-    amount: 18,
-    direction: "expense",
-  },
-  {
-    id: "tx-4",
-    name: "Sunday Supply Co.",
-    category: "Shopping",
-    date: "Oct 10, 2026",
-    amount: 84.9,
-    direction: "expense",
-  },
-];
+export function getDemoFinanceData(): FinanceData {
+  const demoFinanceData = makeDemoFinanceData();
+  return {
+    categories: demoFinanceData.categories.map((category) => ({ ...category })),
+    transactions: demoFinanceData.transactions.map((transaction) => ({
+      ...transaction,
+    })),
+  };
+}

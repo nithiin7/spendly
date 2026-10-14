@@ -1,0 +1,211 @@
+import type {
+  Category,
+  FinanceData,
+  SpendingCategory,
+  SpendingMonth,
+  Transaction,
+  TransactionType,
+} from "@/types/finance";
+
+export function formatRupees(amountPaise: number): string {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(amountPaise / 100);
+}
+
+export function parseRupeesToPaise(value: string): number | null {
+  const normalized = value.trim();
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) {
+    return null;
+  }
+  const [rupees, paise = ""] = normalized.split(".");
+  const amountPaise = Number(rupees) * 100 + Number(paise.padEnd(2, "0"));
+  return Number.isSafeInteger(amountPaise) && amountPaise > 0
+    ? amountPaise
+    : null;
+}
+
+export function dateToMonthKey(date: string): string {
+  return date.slice(0, 7);
+}
+
+export function getCurrentMonthKey(date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export function getMonthlyTotals(
+  transactions: Transaction[],
+  monthKey: string,
+): { incomePaise: number; expensePaise: number; savingsPaise: number } {
+  const totals = transactions.reduce(
+    (result, transaction) => {
+      if (dateToMonthKey(transaction.date) === monthKey) {
+        result[transaction.type] += transaction.amountPaise;
+      }
+      return result;
+    },
+    { income: 0, expense: 0 },
+  );
+
+  return {
+    incomePaise: totals.income,
+    expensePaise: totals.expense,
+    savingsPaise: totals.income - totals.expense,
+  };
+}
+
+export function getSpendingMonths(
+  transactions: Transaction[],
+  count = 6,
+  now = new Date(),
+): SpendingMonth[] {
+  return Array.from({ length: count }, (_, index) => {
+    const monthDate = new Date(now.getFullYear(), now.getMonth() - count + index + 1, 1);
+    const monthKey = getCurrentMonthKey(monthDate);
+    const amountPaise = transactions.reduce(
+      (sum, transaction) =>
+        transaction.type === "expense" &&
+        dateToMonthKey(transaction.date) === monthKey
+          ? sum + transaction.amountPaise
+          : sum,
+      0,
+    );
+
+    return {
+      monthKey,
+      label: new Intl.DateTimeFormat("en", { month: "short" }).format(monthDate),
+      amountPaise,
+    };
+  });
+}
+
+export function getSpendingCategories(
+  transactions: Transaction[],
+  categories: Category[],
+  monthKey: string,
+): SpendingCategory[] {
+  const totals = new Map<string, number>();
+  for (const transaction of transactions) {
+    if (
+      transaction.type === "expense" &&
+      dateToMonthKey(transaction.date) === monthKey
+    ) {
+      totals.set(
+        transaction.categoryId,
+        (totals.get(transaction.categoryId) ?? 0) + transaction.amountPaise,
+      );
+    }
+  }
+
+  return categories
+    .map((category) => ({
+      id: category.id,
+      label: category.name,
+      amountPaise: totals.get(category.id) ?? 0,
+      color: category.color,
+    }))
+    .filter(({ amountPaise }) => amountPaise > 0)
+    .sort((left, right) => right.amountPaise - left.amountPaise);
+}
+
+export function filterAndSortTransactions(
+  transactions: Transaction[],
+  filters: {
+    query: string;
+    month: string;
+    type: TransactionType | "all";
+    categoryId: string;
+    sort: "date-desc" | "date-asc" | "amount-desc" | "amount-asc";
+  },
+): Transaction[] {
+  const normalizedQuery = filters.query.trim().toLocaleLowerCase();
+  return transactions
+    .filter((transaction) => {
+      return (
+        (!normalizedQuery ||
+          transaction.description.toLocaleLowerCase().includes(normalizedQuery)) &&
+        (filters.month === "all" ||
+          dateToMonthKey(transaction.date) === filters.month) &&
+        (filters.type === "all" || transaction.type === filters.type) &&
+        (!filters.categoryId || transaction.categoryId === filters.categoryId)
+      );
+    })
+    .sort((left, right) => {
+      switch (filters.sort) {
+        case "date-asc":
+          return left.date.localeCompare(right.date) || left.createdAt.localeCompare(right.createdAt);
+        case "amount-desc":
+          return right.amountPaise - left.amountPaise;
+        case "amount-asc":
+          return left.amountPaise - right.amountPaise;
+        case "date-desc":
+        default:
+          return right.date.localeCompare(left.date) || right.createdAt.localeCompare(left.createdAt);
+      }
+    });
+}
+
+export function isFinanceData(value: unknown): value is FinanceData {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  if (!Array.isArray(candidate.categories) || !Array.isArray(candidate.transactions)) {
+    return false;
+  }
+  const storedCategories: unknown[] = candidate.categories;
+  const storedTransactions: unknown[] = candidate.transactions;
+  const validCategories = storedCategories.every(
+    (category: unknown) =>
+      typeof category === "object" &&
+      category !== null &&
+      typeof (category as Category).id === "string" &&
+      typeof (category as Category).name === "string" &&
+      typeof (category as Category).color === "string" &&
+      typeof (category as Category).isDefault === "boolean" &&
+      ((category as Category).type === "income" ||
+        (category as Category).type === "expense"),
+  );
+  const validTransactions = storedTransactions.every(
+    (transaction: unknown) => {
+      if (typeof transaction !== "object" || transaction === null) {
+        return false;
+      }
+      const item = transaction as Transaction;
+      return (
+        typeof item.id === "string" &&
+        (item.type === "income" || item.type === "expense") &&
+        typeof item.description === "string" &&
+        item.description.trim().length > 0 &&
+        Number.isSafeInteger(item.amountPaise) &&
+        item.amountPaise > 0 &&
+        typeof item.categoryId === "string" &&
+        storedCategories.some(
+          (category: unknown) =>
+            typeof category === "object" &&
+            category !== null &&
+            (category as Category).id === item.categoryId &&
+            (category as Category).type === item.type,
+        ) &&
+        /^\d{4}-\d{2}-\d{2}$/.test(item.date) &&
+        typeof item.createdAt === "string" &&
+        typeof item.updatedAt === "string" &&
+        (item.paymentMethod === undefined ||
+          typeof item.paymentMethod === "string") &&
+        (item.notes === undefined || typeof item.notes === "string")
+      );
+    },
+  );
+
+  return validCategories && validTransactions;
+}
+
+export function formatTransactionAmount(
+  amountPaise: number,
+  type: TransactionType,
+): string {
+  const amount = formatRupees(amountPaise);
+  return type === "income" ? `+${amount}` : `−${amount}`;
+}

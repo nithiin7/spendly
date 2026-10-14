@@ -1,11 +1,16 @@
-import { spendingCategories } from "@/lib/demo-data";
+import { formatRupees } from "@/lib/finance-utils";
+import type { SpendingCategory } from "@/types/finance";
 
-const totalSpending = spendingCategories.reduce(
-  (total, category) => total + category.amount,
-  0,
-);
+export function CategoryBreakdown({
+  categories,
+}: {
+  categories: SpendingCategory[];
+}) {
+  const totalSpending = categories.reduce(
+    (total, category) => total + category.amountPaise,
+    0,
+  );
 
-export function CategoryBreakdown() {
   return (
     <section
       aria-labelledby="categories-heading"
@@ -23,39 +28,48 @@ export function CategoryBreakdown() {
       </div>
 
       <div className="mt-6 flex h-2.5 overflow-hidden rounded-full bg-canvas">
-        {spendingCategories.map(({ label, amount, color }) => (
+        {categories.map(({ id, amountPaise, color }) => (
           <span
             aria-hidden="true"
-            key={label}
+            key={id}
             style={{
               backgroundColor: color,
-              width: `${(amount / totalSpending) * 100}%`,
+              width:
+                totalSpending === 0
+                  ? "0%"
+                  : `${(amountPaise / totalSpending) * 100}%`,
             }}
           />
         ))}
       </div>
 
-      <ul className="mt-5 space-y-4">
-        {spendingCategories.map(({ label, amount, color }) => (
-          <li className="flex items-center gap-3" key={label}>
-            <span
-              aria-hidden="true"
-              className="size-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: color }}
-            />
-            <span className="min-w-0 flex-1 truncate text-sm text-muted">
-              {label}
-            </span>
-            <span className="text-sm font-medium tabular-nums text-ink">
-              ${amount.toLocaleString("en-US")}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {categories.length > 0 ? (
+        <ul className="mt-5 space-y-4">
+          {categories.map(({ id, label, amountPaise, color }) => (
+            <li className="flex items-center gap-3" key={id}>
+              <span
+                aria-hidden="true"
+                className="size-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+              <span className="min-w-0 flex-1 truncate text-sm text-muted">
+                {label}
+              </span>
+              <span className="text-sm font-medium tabular-nums text-ink">
+                {formatRupees(amountPaise)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="py-8 text-center text-sm text-muted">
+          No expenses recorded this month.
+        </p>
+      )}
       <p className="mt-5 border-t border-border pt-4 text-xs text-muted">
         Total tracked spending{" "}
         <span className="float-right font-semibold text-ink">
-          ${totalSpending.toLocaleString("en-US")}
+          {formatRupees(totalSpending)}
         </span>
       </p>
     </section>

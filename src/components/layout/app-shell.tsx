@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { CalendarDays, ChevronDown } from "lucide-react";
+import { HardDrive } from "lucide-react";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -15,12 +15,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             </h1>
           </div>
           <div className="hidden items-center gap-2 rounded-xl border border-border bg-white px-3.5 py-2.5 text-sm font-medium text-ink sm:flex">
-            <CalendarDays aria-hidden="true" className="size-4 text-muted" />
-            October 2026
-            <ChevronDown
-              aria-hidden="true"
-              className="ml-1 size-3.5 text-muted"
-            />
+            <HardDrive aria-hidden="true" className="size-4 text-muted" />
+            Saved in this browser
           </div>
           <span className="rounded-full border border-sage-200 bg-sage-100 px-2.5 py-1 text-[11px] font-semibold text-forest-800 sm:hidden">
             Demo

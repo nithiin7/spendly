@@ -44,3 +44,17 @@ body {
 * {
   -webkit-tap-highlight-color: transparent;
 }
+
+@layer components {
+  .form-input {
+    @apply h-11 w-full rounded-xl border border-border bg-white px-3 text-sm text-ink outline-none transition-colors placeholder:text-muted focus:border-forest-700 focus:ring-2 focus:ring-sage-200;
+  }
+
+  .button-primary {
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-forest-800 px-4 text-sm font-medium text-white transition-colors hover:bg-forest-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 focus-visible:ring-offset-2;
+  }
+
+  .button-secondary {
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-white px-3.5 text-sm font-medium text-ink transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 focus-visible:ring-offset-2;
+  }
+}

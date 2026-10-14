@@ -1,27 +1,45 @@
-export type TransactionCategory =
-  | "Housing"
-  | "Food & drink"
-  | "Transport"
-  | "Shopping"
-  | "Health"
-  | "Income";
+export type TransactionType = "income" | "expense";
+
+export type Category = {
+  id: string;
+  name: string;
+  color: string;
+  isDefault: boolean;
+  type: TransactionType;
+};
 
 export type Transaction = {
   id: string;
-  name: string;
-  category: TransactionCategory;
+  type: TransactionType;
+  description: string;
+  amountPaise: number;
+  categoryId: string;
   date: string;
-  amount: number;
-  direction: "income" | "expense";
+  paymentMethod?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TransactionInput = Omit<
+  Transaction,
+  "id" | "createdAt" | "updatedAt"
+>;
+
+export type FinanceData = {
+  categories: Category[];
+  transactions: Transaction[];
 };
 
 export type SpendingMonth = {
   label: string;
-  amount: number;
+  monthKey: string;
+  amountPaise: number;
 };
 
 export type SpendingCategory = {
-  label: Exclude<TransactionCategory, "Income">;
-  amount: number;
+  id: string;
+  label: string;
+  amountPaise: number;
   color: string;
 };
