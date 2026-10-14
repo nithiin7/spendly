@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { FinancePageState } from "@/components/finance/finance-page-state";
 import { CalendarPicker } from "@/components/ui/calendar-picker";
+import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { Modal } from "@/components/ui/modal";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import {
@@ -569,20 +570,20 @@ export function BudgetsPage() {
                 <span className="mb-1.5 block text-sm font-medium text-ink">
                   Expense category
                 </span>
-                <select
+                <CustomDropdown
                   className="form-input"
                   disabled={Boolean(editingCategoryId)}
-                  onChange={(event) => setCategoryId(event.target.value)}
+                  onChange={setCategoryId}
+                  options={[
+                    { value: "", label: "Choose a category" },
+                    ...availableCategories.map((category) => ({
+                      value: category.id,
+                      label: category.name,
+                    })),
+                  ]}
                   required={!editingCategoryId}
                   value={editingCategoryId ?? categoryId}
-                >
-                  <option value="">Choose a category</option>
-                  {availableCategories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
               <label>
                 <span className="mb-1.5 block text-sm font-medium text-ink">

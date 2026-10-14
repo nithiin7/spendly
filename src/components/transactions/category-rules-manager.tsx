@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
+import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import type {
   Category,
   CategoryRule,
@@ -56,19 +57,15 @@ function RuleFields({
     <div className="grid gap-3 sm:grid-cols-[minmax(130px,0.8fr)_minmax(180px,1.6fr)_100px]">
       <label className="space-y-1">
         <span className="text-xs font-medium text-muted">Category</span>
-        <select
+        <CustomDropdown
           className="form-input"
-          onChange={(event) =>
-            onChange({ ...form, categoryId: event.target.value })
-          }
+          onChange={(categoryId) => onChange({ ...form, categoryId })}
+          options={categories.map((category) => ({
+            value: category.id,
+            label: category.name,
+          }))}
           value={form.categoryId}
-        >
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+        />
       </label>
       <label className="space-y-1">
         <span className="text-xs font-medium text-muted">

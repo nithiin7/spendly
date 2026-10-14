@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Pencil, Sparkles } from "lucide-react";
 import { FinancePageState } from "@/components/finance/finance-page-state";
+import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { CategoryRulesManager } from "@/components/transactions/category-rules-manager";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import type { Category, TransactionType } from "@/types/finance";
@@ -170,16 +171,17 @@ export function CategoriesPage() {
           </label>
           <label>
             <span className="sr-only">New category type</span>
-            <select
+            <CustomDropdown
               className="form-input"
-              onChange={(event) =>
-                setNewType(event.target.value as TransactionType)
+              onChange={(type) =>
+                setNewType(type as TransactionType)
               }
+              options={[
+                { value: "expense", label: "Expense" },
+                { value: "income", label: "Income" },
+              ]}
               value={newType}
-            >
-              <option value="expense">Expense</option>
-              <option value="income">Income</option>
-            </select>
+            />
           </label>
           <button className="button-primary" type="submit">
             Add category

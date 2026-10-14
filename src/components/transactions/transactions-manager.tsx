@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
+import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { CategoryRulesManager } from "@/components/transactions/category-rules-manager";
 import {
   createTransactionsCsv,
@@ -360,62 +361,64 @@ function TransactionPanel({
         </label>
         <label>
           <span className="sr-only">Filter by month</span>
-          <select
+          <CustomDropdown
             className="form-input"
-            onChange={(event) => onSelectMonth(event.target.value)}
+            onChange={onSelectMonth}
+            options={[
+              { value: "all", label: "All months" },
+              ...months.map((value) => ({
+                value,
+                label: formatMonth(value),
+              })),
+            ]}
             value={filters.month}
-          >
-            <option value="all">All months</option>
-            {months.map((value) => (
-              <option key={value} value={value}>
-                {formatMonth(value)}
-              </option>
-            ))}
-          </select>
+          />
         </label>
         <label>
           <span className="sr-only">Filter by transaction type</span>
-          <select
+          <CustomDropdown
             className="form-input"
-            onChange={(event) =>
-              onSelectType(event.target.value as TransactionType | "all")
+            onChange={(type) =>
+              onSelectType(type as TransactionType | "all")
             }
+            options={[
+              { value: "all", label: "All types" },
+              { value: "expense", label: "Expenses" },
+              { value: "income", label: "Income" },
+            ]}
             value={filters.type}
-          >
-            <option value="all">All types</option>
-            <option value="expense">Expenses</option>
-            <option value="income">Income</option>
-          </select>
+          />
         </label>
         <label>
           <span className="sr-only">Filter by category</span>
-          <select
+          <CustomDropdown
             className="form-input"
-            onChange={(event) => onSelectCategory(event.target.value)}
+            onChange={onSelectCategory}
+            options={[
+              { value: "", label: "All categories" },
+              ...categoriesForFilter.map((category) => ({
+                value: category.id,
+                label: category.name,
+              })),
+            ]}
             value={categoryId}
-          >
-            <option value="">All categories</option>
-            {categoriesForFilter.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+          />
         </label>
         <label>
           <span className="sr-only">Sort transactions</span>
-          <select
+          <CustomDropdown
             className="form-input"
-            onChange={(event) =>
-              onSelectSort(event.target.value as TransactionSort)
+            onChange={(sort) =>
+              onSelectSort(sort as TransactionSort)
             }
+            options={[
+              { value: "date-desc", label: "Newest first" },
+              { value: "date-asc", label: "Oldest first" },
+              { value: "amount-desc", label: "Amount: high to low" },
+              { value: "amount-asc", label: "Amount: low to high" },
+            ]}
             value={filters.sort}
-          >
-            <option value="date-desc">Newest first</option>
-            <option value="date-asc">Oldest first</option>
-            <option value="amount-desc">Amount: high to low</option>
-            <option value="amount-asc">Amount: low to high</option>
-          </select>
+          />
         </label>
       </div>
 

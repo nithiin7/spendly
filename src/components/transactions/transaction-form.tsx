@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Check, Pencil, Plus, X } from "lucide-react";
 import { CalendarPicker } from "@/components/ui/calendar-picker";
+import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { Modal } from "@/components/ui/modal";
 import { parseRupeesToPaise } from "@/lib/finance-utils";
 import {
@@ -243,22 +244,21 @@ export function TransactionForm({
               Category
             </label>
             <div className="flex gap-2">
-              <select
+              <CustomDropdown
                 className="form-input min-w-0 flex-1"
                 id="categoryId"
-                onChange={(event) => {
-                  setCategoryId(event.target.value);
+                onChange={(categoryId) => {
+                  setCategoryId(categoryId);
                   setCategorySource("manual");
                 }}
+                placeholder="Choose a category"
                 required
+                options={availableCategories.map((category) => ({
+                  value: category.id,
+                  label: category.name,
+                }))}
                 value={categoryId}
-              >
-                {availableCategories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+              />
               {selectedCategory && (
                 <button
                   aria-label={`Rename ${selectedCategory.name} category`}

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { FinancePageState } from "@/components/finance/finance-page-state";
 import { CalendarPicker } from "@/components/ui/calendar-picker";
+import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { Modal } from "@/components/ui/modal";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import { formatRupees, parseRupeesToPaise } from "@/lib/finance-utils";
@@ -714,37 +715,36 @@ function RecurringRuleForm({
           </label>
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-ink">Category</span>
-            <select
+            <CustomDropdown
               className="form-input"
-              onChange={(event) => setCategoryId(event.target.value)}
+              onChange={setCategoryId}
+              options={[
+              { value: "", label: "Choose a category", disabled: true },
+              ...availableCategories.map((category) => ({
+                value: category.id,
+                label: category.name,
+              })),
+              ]}
               required
               value={categoryId}
-            >
-              <option disabled value="">
-                Choose a category
-              </option>
-              {availableCategories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+            />
           </label>
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-ink">Frequency</span>
-            <select
+            <CustomDropdown
               className="form-input"
-              onChange={(event) =>
-                setFrequency(event.target.value as RecurrenceFrequency)
+              onChange={(frequency) =>
+                setFrequency(frequency as RecurrenceFrequency)
               }
+              options={[
+                { value: "weekly", label: "Weekly" },
+                { value: "monthly", label: "Monthly" },
+                { value: "quarterly", label: "Quarterly" },
+                { value: "yearly", label: "Yearly" },
+                { value: "custom", label: "Custom interval" },
+              ]}
               value={frequency}
-            >
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="yearly">Yearly</option>
-              <option value="custom">Custom interval</option>
-            </select>
+            />
           </label>
           {frequency === "custom" && (
             <label className="space-y-1.5">
