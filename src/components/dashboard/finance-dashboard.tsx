@@ -196,7 +196,7 @@ export function FinanceDashboard() {
               aria-hidden="true"
               className="size-1.5 rounded-full bg-positive"
             />
-            Private · saved on this device
+            {finance.storageMode === "cloud" ? "Private · cloud account" : "Private · saved on this device"}
           </div>
           <h2 className="text-2xl font-semibold tracking-[-0.045em] text-ink sm:text-[30px]">
             Your money, in perspective

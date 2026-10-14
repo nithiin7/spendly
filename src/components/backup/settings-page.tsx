@@ -5,6 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import { FinancePageState } from "@/components/finance/finance-page-state";
 import { FinanceBackupManager } from "@/components/backup/finance-backup-manager";
 import { PageEntrance } from "@/components/ui/page-entrance";
+import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import {
   createMigrationRecordId,
@@ -143,44 +144,40 @@ export function SettingsPage() {
         <div className="grid gap-5 sm:grid-cols-2">
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-ink">Default currency</span>
-            <select
+            <CustomDropdown
               className="form-input"
               disabled={!finance.data || finance.isSaving || isSavingPreferences}
-              onChange={(event) => {
-                if (event.target.value !== preferences.defaultCurrency) {
-                  setPendingCurrency(event.target.value);
+              onChange={(value) => {
+                if (value !== preferences.defaultCurrency) {
+                  setPendingCurrency(value);
                   setConversionAcknowledged(false);
                   setPreserveOriginalAmounts(true);
                 }
               }}
+              options={[
+                ...new Set([preferences.defaultCurrency, ...supportedCurrencies]),
+              ].map((currency) => ({ value: currency, label: currency }))}
               value={pendingCurrency ?? preferences.defaultCurrency}
-            >
-              {[...new Set([preferences.defaultCurrency, ...supportedCurrencies])].map(
-                (currency) => (
-                  <option key={currency} value={currency}>
-                    {currency}
-                  </option>
-                ),
-              )}
-            </select>
+            />
             <span className="block text-xs text-muted">
               Saved amounts are shown and summarized in this currency.
             </span>
           </label>
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-ink">Date format</span>
-            <select
+            <CustomDropdown
               className="form-input"
               disabled={!finance.data || finance.isSaving || isSavingPreferences}
-              onChange={(event) =>
-                void savePreference({ dateFormat: event.target.value as DateFormat })
+              onChange={(value) =>
+                void savePreference({ dateFormat: value as DateFormat })
               }
+              options={[
+                { value: "DD/MM/YYYY", label: "DD/MM/YYYY" },
+                { value: "MM/DD/YYYY", label: "MM/DD/YYYY" },
+                { value: "YYYY-MM-DD", label: "YYYY-MM-DD" },
+              ]}
               value={preferences.dateFormat}
-            >
-              <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-            </select>
+            />
           </label>
         </div>
         <label className="flex items-start gap-3 text-sm">

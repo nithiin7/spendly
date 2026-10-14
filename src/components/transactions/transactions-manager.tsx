@@ -39,6 +39,7 @@ type TransactionsManagerProps = {
   categories: Category[];
   rules: CategoryRule[];
   transactions: Transaction[];
+  storageMode?: "local" | "cloud";
   onAdd: (input: TransactionInput) => Promise<boolean>;
   onUpdate: (id: string, input: TransactionInput) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
@@ -78,6 +79,7 @@ export function TransactionsManager({
   categories,
   rules,
   transactions,
+  storageMode = "local",
   onAdd,
   onUpdate,
   onDelete,
@@ -186,6 +188,7 @@ export function TransactionsManager({
         onAdd={() => setEditing("new")}
         onClearAll={() => setConfirmation({ type: "clear" })}
         onExport={exportTransactions}
+        storageMode={storageMode}
         onManageRules={() => setShowRules(true)}
         onDelete={(transaction) =>
           setConfirmation({ type: "delete", transaction })
@@ -261,6 +264,7 @@ type TransactionPanelProps = {
   onReset: () => void;
   onSearch: (value: string) => void;
   onSelectCategory: (value: string) => void;
+  storageMode: "local" | "cloud";
   onSelectMonth: (value: string) => void;
   onSelectSort: (value: TransactionSort) => void;
   onSelectType: (value: TransactionType | "all") => void;
@@ -287,6 +291,7 @@ function TransactionPanel({
   onSearch,
   onSelectCategory,
   onSelectMonth,
+  storageMode,
   onSelectSort,
   onSelectType,
   transactions,
@@ -314,8 +319,7 @@ function TransactionPanel({
             Transactions
           </h2>
           <p className="mt-1 text-sm text-muted">
-            {transactions.length} {transactions.length === 1 ? "record" : "records"}{" "}
-            saved on this device
+            {transactions.length} {transactions.length === 1 ? (storageMode === "cloud" ? "record in your account" : "local record") : (storageMode === "cloud" ? "records in your account" : "local records")}
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">

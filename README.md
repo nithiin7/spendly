@@ -2,9 +2,9 @@
 
 # Spendly
 
-### Your money, in perspective.
+### Personal finance tracking made simple
 
-A private, browser-based finance app for tracking income, expenses, and spending patterns.
+A private, browser-first finance app for tracking income, expenses, recurring bills, budgets, and spending patterns.
 
 <a href="https://github.com/nithiin7/spendly"><img alt="GitHub repository" src="https://img.shields.io/badge/GitHub-nithiin7%2Fspendly-181717?logo=github"></a>
 <img alt="Next.js 16.4.0" src="https://img.shields.io/badge/Next.js-16.4.0-black?logo=nextdotjs">
@@ -14,75 +14,106 @@ A private, browser-based finance app for tracking income, expenses, and spending
 
 </div>
 
-Spendly is a personal finance tracker built with Next.js, TypeScript, Tailwind CSS, and Supabase. Manage transactions and categories, review monthly summaries and charts, and export your records as CSV. Authenticated records are stored in a user-scoped Supabase database; the existing browser data remains available for migration.
+Spendly helps you keep your money organized without overcomplicating it. Use it to track daily spending, monitor income, stay ahead of recurring charges, and understand where your money is going.
 
-## Pages
+## Quick features
 
-- **Overview (`/`)** — monthly balance, savings rate, spending breakdown, trends, and recent activity.
-- **Transactions (`/transactions`)** — search, filter, sort, add, edit, delete, and export entries.
-- **Income (`/income`)** — income transactions and monthly income history.
-- **Recurring (`/recurring`)** — manage scheduled income and expense occurrences, and confirm or skip them.
-- **Budgets (`/budgets`)** — set monthly overall and optional category spending limits, review confirmed actuals, and copy category allocations from the previous month.
-- **Insights (`/insights`)** — month selection, comparisons, and spending analytics.
-- **Categories (`/categories`)** — categories and automatic categorization rules.
-- **Settings (`/settings`)** — JSON backup and restore, and local-data migration.
+- Dashboard overview: monthly balance, income, expenses, savings rate, and recent activity
+- Transactions: add, edit, delete, search, filter, sort, and manage income and expense entries
+- Income tracking: separate income records and monthly income summaries
+- Recurring transactions: schedule future income and bills and confirm or skip each occurrence
+- Budgets: set monthly overall and category limits and compare them with actual spending
+- Insights: compare month-over-month trends and see category breakdowns over time
+- Categories and rules: create custom categories and automate tagging with matching rules
+- Settings and backups: change currency/date preferences, export JSON backups, and restore data safely
+- Private/local-first: keep your finance data on the current device and migrate or back up when needed
 
-## Features
+## Main sections
 
-- 💸 Add, edit, delete, search, filter, sort, and export income and expense transactions.
-- 🔁 Schedule recurring income and expenses; upcoming entries do not affect actual totals until confirmed, and skipped or confirmed occurrences remain in history.
-- 🏷️ Organize transactions with custom categories and editable, rule-based suggestions.
-- 📊 Review monthly income, expenses, balance, savings rate, category totals, and six-month spending trends.
-- 🎯 Compare confirmed expenses with monthly and category budgets, including spending that has no category allocation.
-- 🔒 Keep finance records private to the signed-in account using Supabase Auth and PostgreSQL row-level security.
-- 💾 Export a versioned JSON backup of categories, rules, transactions, recurring history, and monthly budgets; preview and validate a backup before merging or replacing local data.
-- ↩️ Clear saved data or restore the included sample data, with confirmation.
+- Overview — monthly snapshot of money in and out
+- Transactions — add and manage every income and expense entry
+- Income — track income separately from spending activity
+- Recurring — manage scheduled bills and income that need confirmation
+- Budgets — compare planned vs actual spending by month and category
+- Insights — review trends, spending breakdowns, and comparisons
+- Categories — organize transactions and create category rules
+- Settings — backup, restore, and customize your display preferences
 
-## Screenshot
+## How to use it
 
-![Spendly dashboard](./public/spendly.png)
-
-## Technology
-
-Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS 4 · Lucide React
+1. Open the dashboard and choose the month you want to review.
+2. Add transactions from the Transactions or Income pages.
+3. Create categories and rules so new entries are grouped automatically.
+4. Set monthly budget limits in Budgets.
+5. Review recurring payments in Recurring to confirm or skip upcoming items.
+6. Use Insights to compare spending and spot patterns.
+7. Back up your data from Settings whenever you want a safe restore point.
 
 ## Run locally
 
-Requirements: Node.js 22.6.0 or newer and npm. The test script uses Node’s built-in TypeScript stripping.
+Requirements: Node.js 22.6.0 or newer and npm.
 
 ```bash
 npm ci
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). To check the project, run `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`. GitHub Actions runs these checks on pushes and pull requests.
+Open http://localhost:3000
+
+Common checks:
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
 
 ## Supabase setup
 
-1. Create a Supabase project and configure the Site URL and allowed redirect URLs in **Authentication → URL Configuration**. Include `http://localhost:3000/**` and your deployed app URL. The OAuth providers must redirect back to Supabase's callback URL shown in each provider's dashboard settings; Spendly then completes the flow at `/auth/callback`.
-2. In **Authentication → Providers**, enable **Email** for email/password sign-in and email verification. Configure verification and password recovery templates to return users to the app.
-3. To enable Google sign-in, create an OAuth client in Google Cloud Console. Add the Supabase Auth callback URL shown on the Supabase Google provider page as an authorized redirect URI. Copy the Google client ID and secret into **Supabase → Authentication → Providers → Google** and enable the provider.
-4. To enable Microsoft sign-in, register an application in Microsoft Entra ID. Add the Supabase Auth callback URL shown on the Supabase Azure/Microsoft provider page as a Web redirect URI. Copy the application (client) ID and client secret into **Supabase → Authentication → Providers → Azure**, choose the appropriate tenant, and enable the provider. The app requests the `email` scope.
-5. Copy `.env.example` to `.env.local`. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from the project's Connect/API settings. These are the only Supabase credentials needed by the app; keep OAuth client secrets in the Supabase dashboard and never put secrets or service-role keys in browser code.
-6. Apply both versioned migrations, in order: `20261014000000_finance_schema.sql` and `20261014000001_finance_migrations.sql`. With the Supabase CLI, run `supabase link --project-ref PROJECT_REF` and then `supabase db push`; the CLI applies both migrations.
-7. Run the database authorization tests with `supabase test db` after installing/configuring the Supabase CLI and its local database dependencies. This verifies the owner and cross-account RLS cases against the configured local database.
-8. Run `npm ci`, then `npm run dev`. Create an account or sign in at `/auth/sign-in`; Google and Microsoft buttons are shown on the sign-in and sign-up pages.
+Spendly supports private cloud storage and auth through Supabase. You can also run it in local-only mode without Supabase if you only want browser storage.
 
-### Importing existing browser data
+1. Create a Supabase project.
+2. In the Supabase dashboard, go to Authentication → URL Configuration and add:
+   - `http://localhost:3000/**`
+   - your deployed app URL
+3. In Authentication → Providers, enable Email sign-in and configure password recovery / verification flows.
+4. To enable Google sign-in:
+   - create an OAuth client in Google Cloud Console
+   - add the Supabase Google callback URL as an authorized redirect URI
+   - copy the client ID and secret into Supabase → Authentication → Providers → Google
+5. To enable Microsoft sign-in:
+   - create an app in Microsoft Entra ID
+   - add the Supabase Azure callback URL as a redirect URI
+   - copy the client ID and secret into Supabase → Authentication → Providers → Azure
+6. Create a `.env.local` file from `.env.example` or add the values directly:
 
-1. Sign in on the browser/device that contains the existing Spendly data, then open **Settings**.
-2. Review the detected record counts and merge preview. Spendly validates the complete dataset before writing. Existing cloud records are retained; matching categories are linked, conflicting record IDs are remapped, and existing monthly budget/allocation values win.
-3. Choose **Import local data**. The import can be retried after a network or database failure; the browser copy is retained, and successful imports are recorded per account to prevent duplicate imports.
-4. Verify the imported records in the app and export a backup if desired. Only then select the verification checkbox and choose **Remove browser copy**. JSON backup and restore remain available and accept older backup formats.
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+```
 
-If cloud and local data both exist, the import merges them; it never replaces the cloud dataset. If a migration fails, keep the browser data, reload cloud data from the error banner, and retry from Settings. Do not clear the browser copy as a recovery step.
+7. Apply the database migrations in order:
 
-This schema covers the data model currently present in Spendly: categories, categorization rules, income/expense transactions, recurring rules and occurrences, monthly budgets, and category allocations. The current application has no Planner/monthly plan or preferences entity; those are intentionally not invented by the migration. Amounts are stored as integer paise, preserving the domain representation. Existing string record IDs are retained.
+```bash
+supabase link --project-ref PROJECT_REF
+supabase db push
+```
 
-## Data and privacy
+8. Start the app:
 
-Supabase Auth identifies each user and PostgreSQL row-level security restricts every finance table to its owner. The public URL and publishable key are not privileged credentials; access control is enforced by RLS rather than trusting client-supplied owner IDs. Do not disable RLS or deploy privileged keys to a browser. Local browser data is not encrypted; keep JSON backups and CSV exports private.
+```bash
+npm run dev
+```
 
-JSON backups are downloaded to your device and retain their versioned schema for compatibility with existing exports. Backup files are validated before import; keep exported files private and secure. Local-to-cloud migration must be previewed while signed in. It validates record relationships before import and must not remove browser data until successful migration has been verified. If both local and cloud records exist, use merge/reconciliation instead of replacing cloud data.
+Then sign in or create an account at `/auth/sign-in`.
 
-See [Contributing](./CONTRIBUTING.md) for how to get involved and [LICENSE](./LICENSE) for the project’s license.
+## Privacy
+
+Spendly is designed to keep your financial data personal. If you are signed in, your data is stored in your private Supabase account. If you are not signed in, it stays in the browser. You can still export backups and import or migrate local data safely from Settings.
+
+## Screenshot
+
+![Spendly dashboard](./public/spendly.png)
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for project contribution details and [LICENSE](./LICENSE) for licensing information.

@@ -35,6 +35,7 @@ export function TransactionsPage() {
         categories={categories}
         defaultCurrency={finance.data.preferences?.defaultCurrency ?? "INR"}
         dateFormat={finance.data.preferences?.dateFormat ?? "DD/MM/YYYY"}
+        storageMode={finance.storageMode}
         onAdd={finance.addTransaction}
         onAddCategory={finance.addCustomCategory}
         onAddRule={finance.addCategorizationRule}

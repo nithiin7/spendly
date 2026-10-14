@@ -135,6 +135,7 @@ export function IncomePage() {
         initialType="income"
         defaultCurrency={finance.data.preferences?.defaultCurrency ?? "INR"}
         dateFormat={finance.data.preferences?.dateFormat ?? "DD/MM/YYYY"}
+        storageMode={finance.storageMode}
         categories={categories}
         onAdd={finance.addTransaction}
         onAddCategory={finance.addCustomCategory}
