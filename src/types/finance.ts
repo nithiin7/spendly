@@ -167,6 +167,19 @@ export type SpendingMonth = {
   amountPaise: number;
 };
 
+export type CashFlowMonth = {
+  label: string;
+  monthKey: string;
+  incomePaise: number;
+  expensePaise: number;
+  netPaise: number;
+  change: {
+    incomePaise: number;
+    expensePaise: number;
+    netPaise: number;
+  };
+};
+
 export type SpendingCategory = {
   id: string;
   label: string;

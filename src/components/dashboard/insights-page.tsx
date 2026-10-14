@@ -5,12 +5,14 @@ import { CalendarPicker } from "@/components/ui/calendar-picker";
 import { FinancePageState } from "@/components/finance/finance-page-state";
 import { PageEntrance } from "@/components/ui/page-entrance";
 import { CategoryBreakdown } from "@/components/dashboard/category-breakdown";
+import { CashFlowTrends } from "@/components/dashboard/cash-flow-trends";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import Link from "next/link";
 import {
   formatRupees,
   getCurrentMonthKey,
+  getCashFlowMonths,
   getMonthlyFinancialSummary,
   getPreviousMonthKey,
   getSpendingMonths,
@@ -27,6 +29,7 @@ export function InsightsPage() {
     () => "",
   );
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [trendMonths, setTrendMonths] = useState<6 | 12>(6);
 
   if (!finance.data) {
     return (
@@ -61,6 +64,7 @@ export function InsightsPage() {
     previousMonthKey,
   );
   const months = getSpendingMonths(transactions, 6, monthKey);
+  const cashFlowMonths = getCashFlowMonths(transactions, trendMonths, currentMonth);
   const monthLabel = new Date(
     Number(monthKey.slice(0, 4)),
     Number(monthKey.slice(5, 7)) - 1,
@@ -136,6 +140,14 @@ export function InsightsPage() {
           <p className="mt-1 text-xs text-muted">Compared with previous month</p>
         </article>
       </section>
+
+      <CashFlowTrends
+        currency={currency}
+        months={cashFlowMonths}
+        onChangePeriod={setTrendMonths}
+        onSelectMonth={setSelectedMonth}
+        selectedMonth={monthKey}
+      />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.85fr)]">
         <SpendingChart currentMonth={monthKey} currency={currency} months={months} />

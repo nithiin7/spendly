@@ -4,6 +4,7 @@ import { defaultCategories } from "./categories.ts";
 import {
   createTransactionsCsv,
   filterAndSortTransactions,
+  getCashFlowMonths,
   getMonthlyFinancialSummary,
   getPreviousMonthKey,
   getSpendingMonths,
@@ -137,6 +138,81 @@ test("generates a six-month trend ending at the selected month across year bound
     ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
   );
   assert.equal(getPreviousMonthKey("2026-01"), "2025-12");
+});
+
+test("calculates income, expenses, net cash flow, and month-over-month changes", () => {
+  const months = getCashFlowMonths(
+    [
+      transaction("prior salary", "income", "2026-09-03", 300000),
+      transaction("prior rent", "expense", "2026-09-04", 120000),
+      transaction("salary", "income", "2026-10-03", 350000),
+      transaction("rent", "expense", "2026-10-04", 150000),
+      transaction("other year", "income", "2025-10-03", 900000),
+    ],
+    2,
+    "2026-10",
+  );
+
+  assert.deepEqual(
+    months.map(
+      ({ monthKey, incomePaise, expensePaise, netPaise, change }) => ({
+        monthKey,
+        incomePaise,
+        expensePaise,
+        netPaise,
+        change,
+      }),
+    ),
+    [
+      {
+        monthKey: "2026-09",
+        incomePaise: 300000,
+        expensePaise: 120000,
+        netPaise: 180000,
+        change: {
+          incomePaise: -600000,
+          expensePaise: 120000,
+          netPaise: -720000,
+        },
+      },
+      {
+        monthKey: "2026-10",
+        incomePaise: 350000,
+        expensePaise: 150000,
+        netPaise: 200000,
+        change: {
+          incomePaise: 50000,
+          expensePaise: 30000,
+          netPaise: 20000,
+        },
+      },
+    ],
+  );
+});
+
+test("cash flow trends include empty months and cross calendar-year boundaries", () => {
+  const months = getCashFlowMonths(
+    [transaction("income", "income", "2026-01-02", 10000)],
+    3,
+    "2026-02",
+  );
+
+  assert.deepEqual(
+    months.map(({ monthKey, incomePaise, expensePaise, netPaise }) => [
+      monthKey,
+      incomePaise,
+      expensePaise,
+      netPaise,
+    ]),
+    [
+      ["2025-12", 0, 0, 0],
+      ["2026-01", 10000, 0, 10000],
+      ["2026-02", 0, 0, 0],
+    ],
+  );
+  assert.equal(months[0].change.incomePaise, 0);
+  assert.equal(months[1].change.netPaise, 10000);
+  assert.equal(months[2].change.netPaise, -10000);
 });
 
 test("search, month, type, category, and sorting filters compose correctly across years", () => {

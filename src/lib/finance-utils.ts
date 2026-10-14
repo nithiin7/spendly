@@ -1,6 +1,7 @@
 import type {
   Category,
   CategoryRule,
+  CashFlowMonth,
   FinanceData,
   MonthlyFinancialSummary,
   SpendingCategory,
@@ -161,6 +162,63 @@ export function getSpendingMonths(
         timeZone: "UTC",
       }).format(monthDate),
       amountPaise,
+    };
+  });
+}
+
+export function getCashFlowMonths(
+  transactions: Transaction[],
+  count = 6,
+  endMonthKey = getCurrentMonthKey(),
+): CashFlowMonth[] {
+  const [year, month] = endMonthKey.split("-").map(Number);
+  const totalsByMonth = new Map<
+    string,
+    { incomePaise: number; expensePaise: number }
+  >();
+
+  for (const transaction of transactions) {
+    const monthKey = dateToMonthKey(transaction.date);
+    const totals = totalsByMonth.get(monthKey) ?? {
+      incomePaise: 0,
+      expensePaise: 0,
+    };
+    totals[transaction.type === "income" ? "incomePaise" : "expensePaise"] +=
+      transaction.amountPaise;
+    totalsByMonth.set(monthKey, totals);
+  }
+
+  return Array.from({ length: count }, (_, index) => {
+    const monthDate = new Date(Date.UTC(year, month - count + index, 1));
+    const monthKey = `${monthDate.getUTCFullYear()}-${String(monthDate.getUTCMonth() + 1).padStart(2, "0")}`;
+    const previousMonthKey = getPreviousMonthKey(monthKey);
+    const totals = totalsByMonth.get(monthKey) ?? {
+      incomePaise: 0,
+      expensePaise: 0,
+    };
+    const previousTotals = totalsByMonth.get(previousMonthKey) ?? {
+      incomePaise: 0,
+      expensePaise: 0,
+    };
+    const netPaise = totals.incomePaise - totals.expensePaise;
+    const previousNetPaise =
+      previousTotals.incomePaise - previousTotals.expensePaise;
+
+    return {
+      monthKey,
+      label: new Intl.DateTimeFormat("en-IN", {
+        month: "short",
+        year: "2-digit",
+        timeZone: "UTC",
+      }).format(monthDate),
+      incomePaise: totals.incomePaise,
+      expensePaise: totals.expensePaise,
+      netPaise,
+      change: {
+        incomePaise: totals.incomePaise - previousTotals.incomePaise,
+        expensePaise: totals.expensePaise - previousTotals.expensePaise,
+        netPaise: netPaise - previousNetPaise,
+      },
     };
   });
 }
