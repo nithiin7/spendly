@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --background: #f6f7f3;
+  --foreground: #17241d;
+  --forest-950: #14291f;
+  --forest-800: #254b38;
+  --forest-700: #35674d;
+  --sage-300: #c4d8c9;
+  --sage-200: #dce8df;
+  --sage-100: #edf3ee;
+  --border: #e7eae4;
+  --canvas: #f4f6f2;
+  --muted: #7b887f;
+  --positive: #367553;
+  --ink: #17241d;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-forest-950: var(--forest-950);
+  --color-forest-800: var(--forest-800);
+  --color-forest-700: var(--forest-700);
+  --color-sage-300: var(--sage-300);
+  --color-sage-200: var(--sage-200);
+  --color-sage-100: var(--sage-100);
+  --color-border: var(--border);
+  --color-canvas: var(--canvas);
+  --color-muted: var(--muted);
+  --color-positive: var(--positive);
+  --color-ink: var(--ink);
+  --font-sans: var(--font-geist-sans);
+  --shadow-card: 0 1px 2px rgb(20 41 31 / 4%);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
