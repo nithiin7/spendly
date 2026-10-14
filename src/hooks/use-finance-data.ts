@@ -33,7 +33,7 @@ type FinanceDataState = {
   error: string | null;
 };
 
-export function useFinanceData() {
+export function useFinanceDataState() {
   const [state, setState] = useState<FinanceDataState>({
     data: null,
     isLoading: true,

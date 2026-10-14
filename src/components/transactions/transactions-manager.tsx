@@ -32,6 +32,7 @@ import type {
 import { TransactionForm } from "./transaction-form";
 
 type TransactionsManagerProps = {
+  initialType?: TransactionType;
   categories: Category[];
   rules: CategoryRule[];
   transactions: Transaction[];
@@ -76,6 +77,7 @@ function formatMonth(monthKey: string): string {
 }
 
 export function TransactionsManager({
+  initialType,
   categories,
   rules,
   transactions,
@@ -92,7 +94,9 @@ export function TransactionsManager({
 }: TransactionsManagerProps) {
   const [query, setQuery] = useState("");
   const [month, setMonth] = useState("all");
-  const [type, setType] = useState<TransactionType | "all">("all");
+  const [type, setType] = useState<TransactionType | "all">(
+    initialType ?? "all",
+  );
   const [categoryId, setCategoryId] = useState("");
   const [sort, setSort] = useState<TransactionSort>("date-desc");
   const [editing, setEditing] = useState<Transaction | null | "new">(null);
@@ -195,6 +199,7 @@ export function TransactionsManager({
       {editing !== null && (
         <TransactionForm
           categories={categories}
+          initialType={initialType ?? "expense"}
           rules={rules}
           onAddCategory={onAddCategory}
           onClose={() => setEditing(null)}

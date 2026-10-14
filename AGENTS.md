@@ -10,14 +10,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Project guidance
 
-Spendly is a personal finance and expense tracker. It is a single Next.js App Router page; the UI is client-side where it needs browser storage, user interaction, or React state. There is no backend, authentication, cloud sync, or environment-variable configuration.
+Spendly is a personal finance and expense tracker with multiple Next.js App Router pages. The UI is client-side where it needs browser storage, user interaction, or React state. There is no backend, authentication, cloud sync, or environment-variable configuration.
 
 ### Structure
 
-- `src/app/`: the root layout, metadata, global styles, and dashboard route.
-- `src/components/layout/`: responsive app shell and navigation.
+- `src/app/`: the root layout, metadata, global styles, and routes for overview, transactions, income, insights, categories, and settings.
+- `src/components/layout/`: shared responsive app shell and navigation.
 - `src/components/dashboard/`: monthly summary, spending trend, category breakdown, and recent activity.
 - `src/components/transactions/`: transaction forms and management, including category rules.
+- `src/hooks/finance-data-provider.tsx`: the shared client-side finance state provider used across routes.
 - `src/components/ui/`: shared UI primitives such as the modal.
 - `src/hooks/`: finance state and mutation actions (`use-finance-data.ts`).
 - `src/lib/`: categories, categorization, persistence, demo data, financial calculations, and their tests.

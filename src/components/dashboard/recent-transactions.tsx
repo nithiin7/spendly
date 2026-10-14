@@ -1,4 +1,5 @@
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import Link from "next/link";
 import { formatRupees } from "@/lib/finance-utils";
 import type { Category, Transaction } from "@/types/finance";
 
@@ -42,9 +43,9 @@ export function RecentTransactions({
           </h2>
           <p className="mt-1 text-sm text-muted">Your latest activity</p>
         </div>
-        <a className="text-sm font-medium text-forest-800 hover:underline" href="#transactions">
+        <Link className="text-sm font-medium text-forest-800 hover:underline" href="/transactions">
           View all
-        </a>
+        </Link>
       </div>
 
       {recentTransactions.length > 0 ? (

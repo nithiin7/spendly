@@ -4,7 +4,7 @@
 
 ### Your money, in perspective.
 
-A private, browser-based dashboard for tracking income, expenses, and spending patterns.
+A private, browser-based finance app for tracking income, expenses, and spending patterns.
 
 <a href="https://github.com/nithiin7/spendly"><img alt="GitHub repository" src="https://img.shields.io/badge/GitHub-nithiin7%2Fspendly-181717?logo=github"></a>
 <img alt="Next.js 16.4.0" src="https://img.shields.io/badge/Next.js-16.4.0-black?logo=nextdotjs">
@@ -15,6 +15,15 @@ A private, browser-based dashboard for tracking income, expenses, and spending p
 </div>
 
 Spendly is a personal finance tracker built with Next.js, TypeScript, and Tailwind CSS. Manage transactions and categories, review monthly summaries and charts, and export your records as CSV. No account or server sync is configured.
+
+## Pages
+
+- **Overview (`/`)** — monthly balance, savings rate, spending breakdown, trends, and recent activity.
+- **Transactions (`/transactions`)** — search, filter, sort, add, edit, delete, and export entries.
+- **Income (`/income`)** — income transactions and monthly income history.
+- **Insights (`/insights`)** — month selection, comparisons, and spending analytics.
+- **Categories (`/categories`)** — categories and automatic categorization rules.
+- **Settings (`/settings`)** — local JSON backup and restore.
 
 ## Features
 
