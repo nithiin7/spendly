@@ -279,6 +279,11 @@ export function useFinanceData() {
     }
   }, []);
 
+  const restoreData = useCallback(
+    (data: FinanceData): boolean => commit(data),
+    [commit],
+  );
+
   return {
     ...state,
     addTransaction,
@@ -291,5 +296,6 @@ export function useFinanceData() {
     deleteCategorizationRule,
     resetDemoData,
     clearAllData,
+    restoreData,
   };
 }

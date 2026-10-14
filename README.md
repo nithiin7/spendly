@@ -22,6 +22,7 @@ Spendly is a personal finance tracker built with Next.js, TypeScript, and Tailwi
 - 🏷️ Organize transactions with custom categories and editable, rule-based suggestions.
 - 📊 Review monthly income, expenses, balance, savings rate, category totals, and six-month spending trends.
 - 🔒 Keep saved finance data in this browser using localStorage.
+- 💾 Export a versioned JSON backup of categories, rules, income, and expenses; preview and validate a backup before merging or replacing local data.
 - ↩️ Clear saved data or restore the included sample data, with confirmation.
 
 ## Screenshot
@@ -46,5 +47,7 @@ Open [http://localhost:3000](http://localhost:3000). To check the project, run `
 ## Data and privacy
 
 Spendly stores transaction, category, and rule data in the browser’s localStorage. The project does not configure an account, server-side storage, or synchronization. Browser storage is not encrypted or backed up by Spendly; anyone with access to your browser profile may be able to access it. CSV exports are downloaded to your device.
+
+JSON backups are downloaded to your device and can be merged without overwriting existing records or explicitly used to replace all saved finance data. Backup files are validated locally before import; keep exported files private and secure.
 
 See [Contributing](./CONTRIBUTING.md) for how to get involved and [LICENSE](./LICENSE) for the project’s license.

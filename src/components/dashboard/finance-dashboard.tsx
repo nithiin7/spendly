@@ -16,6 +16,7 @@ import { TransactionForm } from "@/components/transactions/transaction-form";
 import { TransactionsManager } from "@/components/transactions/transactions-manager";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { Modal } from "@/components/ui/modal";
+import { FinanceBackupManager } from "@/components/backup/finance-backup-manager";
 import {
   formatRupees,
   getCurrentMonthKey,
@@ -89,6 +90,12 @@ export function FinanceDashboard() {
             Sample data could not be saved to this browser.
           </p>
         )}
+        <div className="mt-5">
+          <FinanceBackupManager
+            data={null}
+            onRestore={finance.restoreData}
+          />
+        </div>
         {confirmReset && (
           <Modal
             description="This replaces any saved data with the Spendly sample transactions and default categories."
@@ -320,6 +327,11 @@ export function FinanceDashboard() {
         categories={categories}
         onAdd={() => setQuickCreateType("expense")}
         transactions={transactions}
+      />
+
+      <FinanceBackupManager
+        data={finance.data}
+        onRestore={finance.restoreData}
       />
 
       <TransactionsManager
