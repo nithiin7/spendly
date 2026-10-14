@@ -12,6 +12,11 @@ import {
   updateCategoryRule,
 } from "@/lib/categorization";
 import { removeTransaction } from "@/lib/finance-utils";
+import {
+  copyPreviousMonthAllocations,
+  isValidMonthKey,
+  monthlyBudgetMonthKey,
+} from "@/lib/monthly-budgets";
 import { createTransactionRecord } from "@/lib/transaction-factory";
 import {
   createRecurringOccurrence,
@@ -27,8 +32,10 @@ import {
 } from "@/lib/finance-storage";
 import type {
   Category,
+  CategoryBudgetAllocation,
   CategoryRuleInput,
   FinanceData,
+  MonthlyBudget,
   RecurringOccurrence,
   RecurringRule,
   RecurringRuleInput,
@@ -41,6 +48,28 @@ type FinanceDataState = {
   isLoading: boolean;
   error: string | null;
 };
+
+function getOrCreateMonthlyBudget(
+  budgets: MonthlyBudget[],
+  year: number,
+  month: number,
+  now: string,
+): MonthlyBudget {
+  const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+  if (!isValidMonthKey(monthKey)) {
+    throw new Error("Choose a valid month for this budget.");
+  }
+  return (
+    budgets.find((budget) => monthlyBudgetMonthKey(budget) === monthKey) ?? {
+      id: crypto.randomUUID(),
+      year,
+      month,
+      allocations: [],
+      createdAt: now,
+      updatedAt: now,
+    }
+  );
+}
 
 export function useFinanceDataState() {
   const [state, setState] = useState<FinanceDataState>({
@@ -298,6 +327,205 @@ export function useFinanceDataState() {
     [commit],
   );
 
+  const saveOverallBudget = useCallback(
+    (
+      year: number,
+      month: number,
+      overallLimitPaise: number | undefined,
+    ): boolean => {
+      const current = dataRef.current;
+      if (!current) return false;
+      if (
+        overallLimitPaise !== undefined &&
+        (!Number.isSafeInteger(overallLimitPaise) || overallLimitPaise <= 0)
+      ) {
+        reportMutationError("Enter an overall budget greater than ₹0.");
+        return false;
+      }
+      try {
+        const now = new Date().toISOString();
+        const existing = getOrCreateMonthlyBudget(
+          current.budgets,
+          year,
+          month,
+          now,
+        );
+        const budget: MonthlyBudget = {
+          ...existing,
+          overallLimitPaise,
+          updatedAt: now,
+        };
+        return commit({
+          ...current,
+          budgets: current.budgets.some((item) => item.id === budget.id)
+            ? current.budgets.map((item) =>
+                item.id === budget.id ? budget : item,
+              )
+            : [...current.budgets, budget],
+        });
+      } catch (error) {
+        reportMutationError(
+          error instanceof Error ? error.message : "The budget could not be saved.",
+        );
+        return false;
+      }
+    },
+    [commit, reportMutationError],
+  );
+
+  const saveCategoryBudget = useCallback(
+    (
+      year: number,
+      month: number,
+      categoryId: string,
+      amountPaise: number,
+    ): boolean => {
+      const current = dataRef.current;
+      if (!current) return false;
+      if (!Number.isSafeInteger(amountPaise) || amountPaise <= 0) {
+        reportMutationError("Enter a category budget greater than ₹0.");
+        return false;
+      }
+      if (
+        !current.categories.some(
+          (category) => category.id === categoryId && category.type === "expense",
+        )
+      ) {
+        reportMutationError("Choose an existing expense category.");
+        return false;
+      }
+      try {
+        const now = new Date().toISOString();
+        const existing = getOrCreateMonthlyBudget(
+          current.budgets,
+          year,
+          month,
+          now,
+        );
+        const allocation: CategoryBudgetAllocation = { categoryId, amountPaise };
+        const budget: MonthlyBudget = {
+          ...existing,
+          allocations: [
+            ...existing.allocations.filter(
+              (item) => item.categoryId !== categoryId,
+            ),
+            allocation,
+          ],
+          updatedAt: now,
+        };
+        return commit({
+          ...current,
+          budgets: current.budgets.some((item) => item.id === budget.id)
+            ? current.budgets.map((item) =>
+                item.id === budget.id ? budget : item,
+              )
+            : [...current.budgets, budget],
+        });
+      } catch (error) {
+        reportMutationError(
+          error instanceof Error
+            ? error.message
+            : "The category budget could not be saved.",
+        );
+        return false;
+      }
+    },
+    [commit, reportMutationError],
+  );
+
+  const removeCategoryBudget = useCallback(
+    (year: number, month: number, categoryId: string): boolean => {
+      const current = dataRef.current;
+      if (!current) return false;
+      const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+      const existing = current.budgets.find(
+        (budget) => monthlyBudgetMonthKey(budget) === monthKey,
+      );
+      if (!existing) return false;
+      const now = new Date().toISOString();
+      const budget = {
+        ...existing,
+        allocations: existing.allocations.filter(
+          (item) => item.categoryId !== categoryId,
+        ),
+        updatedAt: now,
+      };
+      return commit({
+        ...current,
+        budgets: current.budgets.map((item) =>
+          item.id === budget.id ? budget : item,
+        ),
+      });
+    },
+    [commit],
+  );
+
+  const copyCategoryBudgets = useCallback(
+    (year: number, month: number): boolean => {
+      const current = dataRef.current;
+      if (!current) return false;
+      const previous = copyPreviousMonthAllocations(
+        current.budgets,
+        year,
+        month,
+      );
+      if (!previous?.length) {
+        reportMutationError(
+          "There are no category budgets to copy from the previous month.",
+        );
+        return false;
+      }
+      try {
+        const now = new Date().toISOString();
+        const existing = getOrCreateMonthlyBudget(
+          current.budgets,
+          year,
+          month,
+          now,
+        );
+        const allocations = new Map(
+          existing.allocations.map((item) => [item.categoryId, item]),
+        );
+        previous.forEach((item) => allocations.set(item.categoryId, item));
+        const budget: MonthlyBudget = {
+          ...existing,
+          allocations: [...allocations.values()],
+          updatedAt: now,
+        };
+        return commit({
+          ...current,
+          budgets: current.budgets.some((item) => item.id === budget.id)
+            ? current.budgets.map((item) =>
+                item.id === budget.id ? budget : item,
+              )
+            : [...current.budgets, budget],
+        });
+      } catch (error) {
+        reportMutationError(
+          error instanceof Error
+            ? error.message
+            : "The previous month's budgets could not be copied.",
+        );
+        return false;
+      }
+    },
+    [commit, reportMutationError],
+  );
+
+  const deleteMonthlyBudget = useCallback(
+    (budgetId: string): boolean => {
+      const current = dataRef.current;
+      if (!current || !current.budgets.some((budget) => budget.id === budgetId)) {
+        return false;
+      }
+      return commit({
+        ...current,
+        budgets: current.budgets.filter((budget) => budget.id !== budgetId),
+      });
+    },
+    [commit],
+  );
+
   const editRecurringOccurrence = useCallback(
     (
       occurrenceId: string,
@@ -513,6 +741,11 @@ export function useFinanceDataState() {
     editRecurringRule,
     setRecurringRuleActive,
     deleteRecurringRule,
+    saveOverallBudget,
+    saveCategoryBudget,
+    removeCategoryBudget,
+    copyCategoryBudgets,
+    deleteMonthlyBudget,
     editRecurringOccurrence,
     confirmRecurringOccurrence: (occurrenceId: string) =>
       settleRecurringOccurrence(occurrenceId, "confirmed"),

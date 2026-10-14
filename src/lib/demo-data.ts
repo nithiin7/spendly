@@ -109,6 +109,7 @@ function makeDemoFinanceData(): FinanceData {
     ],
     recurringRules: [],
     recurringOccurrences: [],
+    budgets: [],
   };
 }
 
@@ -125,5 +126,6 @@ export function getDemoFinanceData(): FinanceData {
     })),
     recurringRules: [],
     recurringOccurrences: [],
+    budgets: [],
   };
 }

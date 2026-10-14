@@ -45,11 +45,13 @@ export function loadFinanceData(): FinanceData {
       })),
       recurringRules: parsed.recurringRules ?? [],
       recurringOccurrences: parsed.recurringOccurrences ?? [],
+      budgets: parsed.budgets ?? [],
     };
     if (
       parsed.rules === undefined ||
       parsed.recurringRules === undefined ||
       parsed.recurringOccurrences === undefined ||
+      parsed.budgets === undefined ||
       parsed.categories.some(
         (category) => category.isFallback === undefined,
       ) ||
@@ -87,6 +89,7 @@ export function clearFinanceData(): FinanceData {
     transactions: [],
     recurringRules: [],
     recurringOccurrences: [],
+    budgets: [],
   };
   saveFinanceData(emptyData);
   return emptyData;

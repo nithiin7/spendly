@@ -12,6 +12,7 @@ import {
   isRecurringOccurrence,
   isRecurringRule,
 } from "./recurring-transactions.ts";
+import { validateMonthlyBudgets } from "./monthly-budgets.ts";
 
 export function formatRupees(amountPaise: number): string {
   return new Intl.NumberFormat("en-IN", {
@@ -250,6 +251,9 @@ export function isFinanceData(value: unknown): value is FinanceData {
   )
     ? candidate.recurringOccurrences
     : [];
+  const storedBudgets: unknown[] = Array.isArray(candidate.budgets)
+    ? candidate.budgets
+    : [];
   const validCategories = storedCategories.every(
     (category: unknown) =>
       typeof category === "object" &&
@@ -349,6 +353,11 @@ export function isFinanceData(value: unknown): value is FinanceData {
               (category as Category).type === occurrence.type,
           ),
       ));
+  const validBudgets =
+    candidate.budgets === undefined ||
+    (Array.isArray(candidate.budgets) &&
+      validCategories &&
+      validateMonthlyBudgets(storedBudgets, storedCategories as Category[]));
   const recurringIdsUnique =
     new Set(
       storedRecurringRules.map((rule) =>
@@ -387,6 +396,7 @@ export function isFinanceData(value: unknown): value is FinanceData {
     validTransactions &&
     validRecurringRules &&
     validRecurringOccurrences &&
+    validBudgets &&
     recurringIdsUnique &&
     occurrenceTransactionIdsUnique
   );

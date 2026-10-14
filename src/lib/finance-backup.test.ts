@@ -63,6 +63,7 @@ const data: FinanceData = {
   ],
   recurringRules: [],
   recurringOccurrences: [],
+  budgets: [],
 };
 
 function serializedBackup(financeData = data): string {
@@ -135,6 +136,84 @@ test("accepts older JSON backups without recurring arrays", () => {
   const parsed = parseFinanceBackup(oldBackup);
   assert.deepEqual(parsed.data.recurringRules, []);
   assert.deepEqual(parsed.data.recurringOccurrences, []);
+  assert.deepEqual(parsed.data.budgets, []);
+});
+
+test("round-trips monthly budgets and accepts pre-budget backups", () => {
+  const budgetData: FinanceData = {
+    ...data,
+    budgets: [
+      {
+        id: "budget-october",
+        year: 2026,
+        month: 10,
+        overallLimitPaise: 250000,
+        allocations: [{ categoryId: "expenses", amountPaise: 100000 }],
+        createdAt: "2026-10-01T10:00:00.000Z",
+        updatedAt: "2026-10-02T10:00:00.000Z",
+      },
+    ],
+  };
+  const parsed = parseFinanceBackup(serializedBackup(budgetData));
+  assert.deepEqual(parsed.data.budgets, budgetData.budgets);
+
+  const oldBackup = JSON.parse(serializedBackup(data)) as {
+    data: Record<string, unknown>;
+  };
+  delete oldBackup.data.budgets;
+  assert.deepEqual(
+    parseFinanceBackup(JSON.stringify(oldBackup)).data.budgets,
+    [],
+  );
+});
+
+test("rejects invalid budget amounts, duplicate monthly budgets, and duplicate allocations", () => {
+  const validBudget = {
+    id: "budget-october",
+    year: 2026,
+    month: 10,
+    overallLimitPaise: 250000,
+    allocations: [{ categoryId: "expenses", amountPaise: 100000 }],
+    createdAt: "2026-10-01T10:00:00.000Z",
+    updatedAt: "2026-10-02T10:00:00.000Z",
+  };
+  const invalidAmount: FinanceData = {
+    ...data,
+    budgets: [{ ...validBudget, overallLimitPaise: 0 }],
+  };
+  assert.throws(
+    () => parseFinanceBackup(serializedBackup(invalidAmount)),
+    /monthly budget with invalid fields/,
+  );
+
+  const duplicateMonth: FinanceData = {
+    ...data,
+    budgets: [
+      validBudget,
+      { ...validBudget, id: "budget-october-duplicate" },
+    ],
+  };
+  assert.throws(
+    () => parseFinanceBackup(serializedBackup(duplicateMonth)),
+    /monthly budget with invalid fields/,
+  );
+
+  const duplicateAllocation: FinanceData = {
+    ...data,
+    budgets: [
+      {
+        ...validBudget,
+        allocations: [
+          ...validBudget.allocations,
+          { categoryId: "expenses", amountPaise: 20000 },
+        ],
+      },
+    ],
+  };
+  assert.throws(
+    () => parseFinanceBackup(serializedBackup(duplicateAllocation)),
+    /monthly budget with invalid fields/,
+  );
 });
 
 test("rejects malformed JSON and unsupported backup versions", () => {
@@ -220,6 +299,7 @@ test("merge deduplicates identical existing records and preserves references", (
     transactions: 0,
     recurringRules: 0,
     recurringOccurrences: 0,
+    budgets: 0,
   });
   assert.equal(
     plan.data.transactions[0].categoryId,
@@ -250,6 +330,7 @@ test("merge adds new records without changing current data and rejects conflicts
     transactions: 2,
     recurringRules: 0,
     recurringOccurrences: 0,
+    budgets: 0,
   });
 
   const conflicting = {
@@ -261,6 +342,35 @@ test("merge adds new records without changing current data and rejects conflicts
     /already exists with different data/,
   );
   assert.deepEqual(current, original);
+});
+
+test("merge adds monthly budgets and rejects a second budget for the same month atomically", () => {
+  const current: FinanceData = { ...data, budgets: [] };
+  const budget = {
+    id: "budget-october",
+    year: 2026,
+    month: 10,
+    allocations: [{ categoryId: "expenses", amountPaise: 25000 }],
+    createdAt: "2026-10-01T10:00:00.000Z",
+    updatedAt: "2026-10-02T10:00:00.000Z",
+  };
+  const incoming: FinanceData = { ...data, budgets: [budget] };
+  const plan = planFinanceRestore(current, incoming, "merge");
+
+  assert.deepEqual(plan.data.budgets, [budget]);
+  assert.equal(plan.added.budgets, 1);
+
+  const conflictingCurrent = {
+    ...current,
+    budgets: [{ ...budget, id: "current-budget" }],
+  };
+  const original = structuredClone(conflictingCurrent);
+  assert.throws(
+    () =>
+      planFinanceRestore(conflictingCurrent, incoming, "merge"),
+    /monthly budget with invalid fields/,
+  );
+  assert.deepEqual(conflictingCurrent, original);
 });
 
 test("failed imports leave current data unchanged when merged totals overflow", () => {
@@ -292,6 +402,7 @@ test("replace plans the backup records without changing current data", () => {
     transactions: [],
     recurringRules: [],
     recurringOccurrences: [],
+    budgets: [],
   };
   const original = structuredClone(current);
   const plan = planFinanceRestore(current, data, "replace");
@@ -305,6 +416,7 @@ test("replace plans the backup records without changing current data", () => {
     transactions: 2,
     recurringRules: 0,
     recurringOccurrences: 0,
+    budgets: 0,
   });
   assert.deepEqual(current, original);
 });

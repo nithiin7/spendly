@@ -15,12 +15,14 @@ import { SummaryCard } from "@/components/dashboard/summary-card";
 import { TransactionForm } from "@/components/transactions/transaction-form";
 import { useFinanceData } from "@/hooks/finance-data-provider";
 import { Modal } from "@/components/ui/modal";
+import Link from "next/link";
 import {
   formatRupees,
   getCurrentMonthKey,
   getMonthlyFinancialSummary,
   getSpendingMonths,
 } from "@/lib/finance-utils";
+import { calculateMonthlyBudgetAnalytics } from "@/lib/monthly-budgets";
 import type { TransactionType } from "@/types/finance";
 
 const subscribeToMonthChanges = () => () => {};
@@ -140,6 +142,17 @@ export function FinanceDashboard() {
     categories,
     monthKey,
   );
+  const monthlyBudget = finance.data.budgets.find(
+    (item) =>
+      item.year === Number(monthKey.slice(0, 4)) &&
+      item.month === Number(monthKey.slice(5, 7)),
+  );
+  const budgetAnalytics = calculateMonthlyBudgetAnalytics(
+    transactions,
+    categories,
+    monthlyBudget,
+    monthKey,
+  );
   const spendingMonths = getSpendingMonths(transactions, 6, monthKey);
   const selectedMonthLabel = new Date(
     Number(monthKey.slice(0, 4)),
@@ -255,6 +268,27 @@ export function FinanceDashboard() {
           tone={summary.balancePaise >= 0 ? "positive" : "default"}
           value={savingsRate}
         />
+      </section>
+
+      <section
+        aria-label={`${selectedMonthLabel} budget`}
+        className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-white p-5 shadow-card sm:px-6"
+      >
+        <div>
+          <p className="text-sm font-medium text-ink">
+            {budgetAnalytics.overall
+              ? `${formatRupees(budgetAnalytics.overall.spentPaise)} of ${formatRupees(budgetAnalytics.overall.budgetPaise)} spent against your budget`
+              : "Plan your monthly spending"}
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            {budgetAnalytics.overall
+              ? `${formatRupees(budgetAnalytics.overall.remainingPaise)} remaining · ${budgetAnalytics.overall.utilizationPercent.toLocaleString("en-IN", { maximumFractionDigits: 1 })}% used`
+              : "Review category limits and compare actual expenses"}
+          </p>
+        </div>
+        <Link className="button-secondary" href="/budgets">
+          {budgetAnalytics.overall ? "View budget" : "Manage budgets"}
+        </Link>
       </section>
 
       <section

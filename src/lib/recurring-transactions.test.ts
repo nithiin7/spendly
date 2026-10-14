@@ -59,6 +59,7 @@ function makeData(rule = makeRule()): FinanceData {
     transactions: [],
     recurringRules: [rule],
     recurringOccurrences: [createRecurringOccurrence(rule, rule.nextDueDate)],
+    budgets: [],
   };
 }
 

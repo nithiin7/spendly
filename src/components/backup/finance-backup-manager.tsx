@@ -25,6 +25,7 @@ const emptyFinanceData: FinanceData = {
   transactions: [],
   recurringRules: [],
   recurringOccurrences: [],
+  budgets: [],
 };
 
 function getCategoryName(backup: FinanceBackup, categoryId: string): string {
@@ -133,8 +134,9 @@ export function FinanceBackupManager({
             Back up your data
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Export categories, rules, transactions, recurring schedules, and
-            occurrence history, or restore them from a backup file.
+            Export categories, rules, transactions, recurring schedules,
+            occurrence history, and monthly budgets, or restore them from a
+            backup file.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
@@ -208,6 +210,8 @@ export function FinanceBackupManager({
                     {backup.data.recurringRules.length} recurring schedules
                     {" · "}
                     {backup.data.recurringOccurrences.length} occurrences
+                    {" · "}
+                    {backup.data.budgets.length} monthly budgets
                   </p>
                   <div className="space-y-1 text-xs text-muted">
                     <p>
@@ -308,7 +312,7 @@ export function FinanceBackupManager({
                       </span>
                       <span className="mt-0.5 block text-xs leading-5 text-muted">
                         Replace categories, rules, transactions, recurring
-                        schedules, and occurrence history saved in this browser
+                        schedules, occurrence history, and monthly budgets saved in this browser
                         with the contents of this backup.
                       </span>
                     </span>
@@ -322,8 +326,10 @@ export function FinanceBackupManager({
                     rules, {plan.added.transactions} transactions,{" "}
                     {plan.added.recurringRules} recurring schedules, and{" "}
                     {plan.added.recurringOccurrences} occurrences will be added.
+                    {" "}
+                    {plan.added.budgets} monthly budgets will be added.
                     {mode === "replace" &&
-                      " This will remove all existing categories, rules, transactions, recurring schedules, and occurrence history."}
+                      " This will remove all existing categories, rules, transactions, recurring schedules, occurrence history, and monthly budgets."}
                     {" "}Nothing changes until you confirm below.
                   </p>
                 )}

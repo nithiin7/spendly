@@ -2,6 +2,7 @@ import type {
   Category,
   CategoryRule,
   FinanceData,
+  MonthlyBudget,
   RecurringOccurrence,
   RecurringRule,
   Transaction,
@@ -11,6 +12,7 @@ import {
   isRecurringOccurrence,
   isRecurringRule,
 } from "./recurring-transactions.ts";
+import { isMonthlyBudget, validateMonthlyBudgets } from "./monthly-budgets.ts";
 
 export const FINANCE_BACKUP_SCHEMA_VERSION = 1;
 
@@ -30,6 +32,7 @@ export type RestorePlan = {
     transactions: number;
     recurringRules: number;
     recurringOccurrences: number;
+    budgets: number;
   };
 };
 
@@ -127,7 +130,8 @@ function validateFinanceData(value: unknown): FinanceData {
     (value.recurringRules !== undefined &&
       !Array.isArray(value.recurringRules)) ||
     (value.recurringOccurrences !== undefined &&
-      !Array.isArray(value.recurringOccurrences))
+      !Array.isArray(value.recurringOccurrences)) ||
+    (value.budgets !== undefined && !Array.isArray(value.budgets))
   ) {
     throw new Error(
       "Backup data must include valid categories, rules, transactions, and recurring records.",
@@ -135,12 +139,14 @@ function validateFinanceData(value: unknown): FinanceData {
   }
   const recurringRules: unknown[] = value.recurringRules ?? [];
   const recurringOccurrences: unknown[] = value.recurringOccurrences ?? [];
+  const budgets: unknown[] = value.budgets ?? [];
 
   hasUniqueIds(value.categories, "category");
   hasUniqueIds(value.rules, "rule");
   hasUniqueIds(value.transactions, "transaction");
   hasUniqueIds(recurringRules, "recurring rule");
   hasUniqueIds(recurringOccurrences, "recurring occurrence");
+  hasUniqueIds(budgets, "monthly budget");
 
   if (!value.categories.every(isValidCategory)) {
     throw new Error("Backup contains a category with missing or invalid fields.");
@@ -161,6 +167,14 @@ function validateFinanceData(value: unknown): FinanceData {
   if (!recurringOccurrences.every(isRecurringOccurrence)) {
     throw new Error(
       "Backup contains a recurring occurrence with missing or invalid fields.",
+    );
+  }
+  if (
+    !budgets.every(isMonthlyBudget) ||
+    !validateMonthlyBudgets(budgets, value.categories)
+  ) {
+    throw new Error(
+      "Backup contains a monthly budget with invalid fields, duplicate month, allocation, or category reference.",
     );
   }
 
@@ -224,6 +238,7 @@ function validateFinanceData(value: unknown): FinanceData {
     rules: value.rules,
     recurringRules: recurringRules as RecurringRule[],
     recurringOccurrences: recurringOccurrences as RecurringOccurrence[],
+    budgets: budgets as MonthlyBudget[],
     transactions: value.transactions.map((transaction) => ({
       ...transaction,
       categorySource: transaction.categorySource ?? "manual",
@@ -348,6 +363,23 @@ function sameRecurringOccurrence(
   );
 }
 
+function sameMonthlyBudget(left: MonthlyBudget, right: MonthlyBudget): boolean {
+  return (
+    left.id === right.id &&
+    left.year === right.year &&
+    left.month === right.month &&
+    left.overallLimitPaise === right.overallLimitPaise &&
+    left.createdAt === right.createdAt &&
+    left.updatedAt === right.updatedAt &&
+    left.allocations.length === right.allocations.length &&
+    left.allocations.every(
+      (allocation, index) =>
+        allocation.categoryId === right.allocations[index].categoryId &&
+        allocation.amountPaise === right.allocations[index].amountPaise,
+    )
+  );
+}
+
 function mergeById<T extends { id: string }>(
   current: T[],
   incoming: T[],
@@ -389,6 +421,7 @@ export function planFinanceRestore(
         transactions: validatedIncoming.transactions.length,
         recurringRules: validatedIncoming.recurringRules.length,
         recurringOccurrences: validatedIncoming.recurringOccurrences.length,
+        budgets: validatedIncoming.budgets.length,
       },
     };
   }
@@ -442,12 +475,19 @@ export function planFinanceRestore(
     "recurring occurrence",
     sameRecurringOccurrence,
   );
+  const budgets = mergeById(
+    validatedCurrent.budgets,
+    validatedIncoming.budgets,
+    "monthly budget",
+    sameMonthlyBudget,
+  );
   const mergedData = validateFinanceData({
     categories: categories.records,
     rules: rules.records,
     transactions: transactions.records,
     recurringRules: recurringRules.records,
     recurringOccurrences: recurringOccurrences.records,
+    budgets: budgets.records,
   });
 
   return {
@@ -458,6 +498,7 @@ export function planFinanceRestore(
       transactions: transactions.added,
       recurringRules: recurringRules.added,
       recurringOccurrences: recurringOccurrences.added,
+      budgets: budgets.added,
     },
   };
 }

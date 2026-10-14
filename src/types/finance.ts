@@ -87,12 +87,62 @@ export type RecurringOccurrence = {
   updatedAt: string;
 };
 
+export type CategoryBudgetAllocation = {
+  categoryId: string;
+  amountPaise: number;
+};
+
+export type MonthlyBudget = {
+  id: string;
+  year: number;
+  month: number;
+  overallLimitPaise?: number;
+  allocations: CategoryBudgetAllocation[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type FinanceData = {
   categories: Category[];
   rules: CategoryRule[];
   transactions: Transaction[];
   recurringRules: RecurringRule[];
   recurringOccurrences: RecurringOccurrence[];
+  budgets: MonthlyBudget[];
+};
+
+export type BudgetStatus = "normal" | "approaching" | "over";
+
+export type BudgetProgress = {
+  budgetPaise: number;
+  spentPaise: number;
+  remainingPaise: number;
+  utilizationPercent: number;
+  status: BudgetStatus;
+};
+
+export type BudgetCategoryAnalysis = {
+  categoryId: string;
+  label: string;
+  color: string;
+  spentPaise: number;
+  budgetPaise: number | null;
+  remainingPaise: number | null;
+  utilizationPercent: number | null;
+  status: BudgetStatus | null;
+};
+
+export type MonthlyBudgetAnalytics = {
+  monthKey: string;
+  expensePaise: number;
+  overall: BudgetProgress | null;
+  categories: BudgetCategoryAnalysis[];
+  highestSpendingCategories: BudgetCategoryAnalysis[];
+  approachingCategories: BudgetCategoryAnalysis[];
+  overBudgetCategories: BudgetCategoryAnalysis[];
+  unbudgetedCategories: BudgetCategoryAnalysis[];
+  unbudgetedExpensePaise: number;
+  overBudgetCategoryCount: number;
 };
 
 export type SpendingMonth = {
