@@ -59,12 +59,14 @@ Open [http://localhost:3000](http://localhost:3000). To check the project, run `
 
 ## Supabase setup
 
-1. Create a Supabase project and configure the Site URL and allowed redirect URLs in **Authentication → URL Configuration**. Include `http://localhost:3000/**` and your deployed app URL.
-2. In **Authentication → Providers → Email**, enable email/password sign-in and email verification. Configure the verification and password recovery email templates to return users to the app.
-3. Copy `.env.example` to `.env.local`. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from the project's Connect/API settings. A publishable key is intended for browser use; never use a secret/service-role key in this app.
-4. Apply both versioned migrations, in order: `20261014000000_finance_schema.sql` and `20261014000001_finance_migrations.sql`. With the Supabase CLI, run `supabase link --project-ref PROJECT_REF` and then `supabase db push`; the CLI applies both migrations.
-5. Run the database authorization tests with `supabase test db` after installing/configuring the Supabase CLI and its local database dependencies. This verifies the owner and cross-account RLS cases against the configured local database.
-6. Run `npm ci`, then `npm run dev`. Create an account or sign in at `/auth/sign-in`.
+1. Create a Supabase project and configure the Site URL and allowed redirect URLs in **Authentication → URL Configuration**. Include `http://localhost:3000/**` and your deployed app URL. The OAuth providers must redirect back to Supabase's callback URL shown in each provider's dashboard settings; Spendly then completes the flow at `/auth/callback`.
+2. In **Authentication → Providers**, enable **Email** for email/password sign-in and email verification. Configure verification and password recovery templates to return users to the app.
+3. To enable Google sign-in, create an OAuth client in Google Cloud Console. Add the Supabase Auth callback URL shown on the Supabase Google provider page as an authorized redirect URI. Copy the Google client ID and secret into **Supabase → Authentication → Providers → Google** and enable the provider.
+4. To enable Microsoft sign-in, register an application in Microsoft Entra ID. Add the Supabase Auth callback URL shown on the Supabase Azure/Microsoft provider page as a Web redirect URI. Copy the application (client) ID and client secret into **Supabase → Authentication → Providers → Azure**, choose the appropriate tenant, and enable the provider. The app requests the `email` scope.
+5. Copy `.env.example` to `.env.local`. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from the project's Connect/API settings. These are the only Supabase credentials needed by the app; keep OAuth client secrets in the Supabase dashboard and never put secrets or service-role keys in browser code.
+6. Apply both versioned migrations, in order: `20261014000000_finance_schema.sql` and `20261014000001_finance_migrations.sql`. With the Supabase CLI, run `supabase link --project-ref PROJECT_REF` and then `supabase db push`; the CLI applies both migrations.
+7. Run the database authorization tests with `supabase test db` after installing/configuring the Supabase CLI and its local database dependencies. This verifies the owner and cross-account RLS cases against the configured local database.
+8. Run `npm ci`, then `npm run dev`. Create an account or sign in at `/auth/sign-in`; Google and Microsoft buttons are shown on the sign-in and sign-up pages.
 
 ### Importing existing browser data
 

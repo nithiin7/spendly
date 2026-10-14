@@ -6,6 +6,77 @@ import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type AuthMode = "sign-in" | "sign-up" | "forgot-password" | "update-password";
+type OAuthProvider = "google" | "azure";
+
+function SpendlyBrand() {
+  return (
+    <Link
+      aria-label="Spendly home"
+      className="inline-flex items-center gap-2.5"
+      href="/"
+    >
+      <span className="flex size-10 items-center justify-center rounded-[14px] bg-forest-800">
+        <svg
+          aria-hidden="true"
+          className="size-[22px]"
+          fill="none"
+          viewBox="0 0 32 32"
+        >
+          <path
+            d="M8 21.5c0-6.2 4.2-11 13.7-13.2-.2 9.5-5 15.7-11.2 15.7-2.7 0-4.5-1.1-4.5-3.1"
+            stroke="white"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2.2"
+          />
+          <path
+            d="M9 24c2.2-3.2 5.3-6 9.6-8.8"
+            stroke="white"
+            strokeLinecap="round"
+            strokeWidth="2.2"
+          />
+        </svg>
+      </span>
+      <span className="text-2xl font-semibold tracking-[-0.06em] text-forest-950">
+        spendly
+      </span>
+    </Link>
+  );
+}
+
+function GoogleMark() {
+  return (
+    <svg aria-hidden="true" className="size-[18px] shrink-0" viewBox="0 0 48 48">
+      <path
+        d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5.1h6.6c3.9-3.6 6.1-8.8 6.1-15Z"
+        fill="#4285F4"
+      />
+      <path
+        d="M24 44c5.5 0 10.2-1.8 13.6-4.9L31 34c-1.8 1.2-4.1 2-7 2-5.3 0-9.8-3.6-11.4-8.4H5.8v5.3A20 20 0 0 0 24 44Z"
+        fill="#34A853"
+      />
+      <path
+        d="M12.6 27.6a12 12 0 0 1 0-7.2v-5.3H5.8a20 20 0 0 0 0 17.8l6.8-5.3Z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M24 11.9c3 0 5.7 1 7.8 3.1l5.9-5.9A19.8 19.8 0 0 0 24 4 20 20 0 0 0 5.8 15.1l6.8 5.3c1.6-4.9 6.1-8.5 11.4-8.5Z"
+        fill="#EA4335"
+      />
+    </svg>
+  );
+}
+
+function MicrosoftMark() {
+  return (
+    <svg aria-hidden="true" className="size-[18px] shrink-0" viewBox="0 0 24 24">
+      <path d="M2 2h9v9H2z" fill="#F25022" />
+      <path d="M13 2h9v9h-9z" fill="#7FBA00" />
+      <path d="M2 13h9v9H2z" fill="#00A4EF" />
+      <path d="M13 13h9v9h-9z" fill="#FFB900" />
+    </svg>
+  );
+}
 
 const modeCopy: Record<AuthMode, { title: string; action: string }> = {
   "sign-in": { title: "Welcome back", action: "Sign in" },
@@ -98,19 +169,70 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     }
   }
 
+  async function startOAuthSignIn(provider: OAuthProvider) {
+    setMessage("");
+    setError("");
+    setIsSubmitting(true);
+    try {
+      const supabase = createClient();
+      const { error: authError } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=/`,
+          ...(provider === "azure" ? { scopes: "email" } : {}),
+        },
+      });
+      if (authError) throw authError;
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "The authentication request could not be completed.",
+      );
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-5 py-12">
-      <section className="w-full max-w-md rounded-3xl border border-border bg-white p-7 shadow-card sm:p-9">
-        <Link className="text-sm font-semibold tracking-tight text-forest-800" href="/">
-          spendly
-        </Link>
-        <h1 className="mt-8 text-2xl font-semibold tracking-[-0.04em] text-ink">
+      <section className="w-full max-w-sm rounded-3xl border border-border bg-white p-6 shadow-card sm:p-8">
+        <div className="mb-6 flex justify-center">
+          <SpendlyBrand />
+        </div>
+        <h1 className="text-center text-2xl font-semibold tracking-[-0.04em] text-ink">
           {modeCopy[mode].title}
         </h1>
-        <p className="mt-2 text-sm leading-6 text-muted">
+        <p className="mt-2 text-center text-sm leading-6 text-muted">
           Your finance data is private to your account and synchronized securely.
         </p>
-        <form className="mt-7 space-y-4" onSubmit={handleSubmit}>
+        {(mode === "sign-in" || mode === "sign-up") && (
+          <div className="mt-6 space-y-2.5">
+            <button
+              className="inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-ink transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting}
+              onClick={() => void startOAuthSignIn("google")}
+              type="button"
+            >
+              <GoogleMark />
+              Continue with Google
+            </button>
+            <button
+              className="inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-ink transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting}
+              onClick={() => void startOAuthSignIn("azure")}
+              type="button"
+            >
+              <MicrosoftMark />
+              Continue with Microsoft
+            </button>
+            <div className="flex items-center gap-3 py-1 text-xs text-muted">
+              <span className="h-px flex-1 bg-border" />
+              <span>or use email</span>
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          </div>
+        )}
+        <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
           {mode !== "update-password" && (
             <label className="block text-sm font-medium text-ink">
               Email
@@ -165,7 +287,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             </p>
           )}
           <button
-            className="w-full rounded-xl bg-forest-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-forest-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl bg-forest-800 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-forest-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isSubmitting}
             type="submit"
           >
