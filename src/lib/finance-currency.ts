@@ -1,8 +1,5 @@
 import type { FinanceData } from "../types/finance.ts";
-import {
-  convertMinorUnits,
-  getHistoricalExchangeRates,
-} from "./currency.ts";
+import { convertMinorUnits, getHistoricalExchangeRates } from "./currency.ts";
 
 type ConversionTask = {
   amountPaise: number;
@@ -138,11 +135,9 @@ export async function convertFinanceDataCurrency(
     [...datesByCurrency].map(async ([sourceCurrency, dates]) => {
       ratesByCurrency.set(
         sourceCurrency,
-        await getHistoricalExchangeRates(
-          sourceCurrency,
-          toCurrency,
-          [...dates],
-        ),
+        await getHistoricalExchangeRates(sourceCurrency, toCurrency, [
+          ...dates,
+        ]),
       );
     }),
   );
@@ -155,7 +150,9 @@ export async function convertFinanceDataCurrency(
         ? { rate: 1, rateDate: task.date }
         : ratesByCurrency.get(sourceCurrency)?.get(task.date);
     if (!rate) {
-      throw new Error(`An exchange rate is missing for ${sourceCurrency} on ${task.date}.`);
+      throw new Error(
+        `An exchange rate is missing for ${sourceCurrency} on ${task.date}.`,
+      );
     }
     task.assign(
       convertMinorUnits(sourceAmount, rate.rate),

@@ -112,7 +112,9 @@ async function fetchHistoricalSeries(
       }
       const payload: unknown = await response.json();
       if (!Array.isArray(payload) || !payload.every(validRate)) {
-        throw new Error("The exchange-rate service returned invalid historical data.");
+        throw new Error(
+          "The exchange-rate service returned invalid historical data.",
+        );
       }
       return new Map(payload.map((row) => [row.date, row.rate]));
     })();
@@ -130,7 +132,9 @@ export async function getHistoricalExchangeRates(
   const uniqueDates = [...new Set(dates)].sort();
   if (!uniqueDates.length) return new Map();
   if (from === to) {
-    return new Map(uniqueDates.map((date) => [date, { rate: 1, rateDate: date }]));
+    return new Map(
+      uniqueDates.map((date) => [date, { rate: 1, rateDate: date }]),
+    );
   }
   const earliest = new Date(`${uniqueDates[0]}T00:00:00.000Z`);
   earliest.setUTCDate(earliest.getUTCDate() - 10);
@@ -140,14 +144,22 @@ export async function getHistoricalExchangeRates(
     earliest.toISOString().slice(0, 10),
     uniqueDates.at(-1)!,
   );
-  const sortedRates = [...series].sort(([left], [right]) => left.localeCompare(right));
-  return new Map(uniqueDates.map((date) => {
-    const applicable = sortedRates.filter(([rateDate]) => rateDate <= date).at(-1);
-    if (!applicable) {
-      throw new Error(`No ${from} to ${to} exchange rate is available on or before ${date}.`);
-    }
-    return [date, { rate: applicable[1], rateDate: applicable[0] }];
-  }));
+  const sortedRates = [...series].sort(([left], [right]) =>
+    left.localeCompare(right),
+  );
+  return new Map(
+    uniqueDates.map((date) => {
+      const applicable = sortedRates
+        .filter(([rateDate]) => rateDate <= date)
+        .at(-1);
+      if (!applicable) {
+        throw new Error(
+          `No ${from} to ${to} exchange rate is available on or before ${date}.`,
+        );
+      }
+      return [date, { rate: applicable[1], rateDate: applicable[0] }];
+    }),
+  );
 }
 
 export async function getHistoricalExchangeRate(
@@ -174,7 +186,9 @@ export async function getLatestExchangeRate(
         `https://api.frankfurter.dev/v2/rate/${encodeURIComponent(from.toLowerCase())}/${encodeURIComponent(to.toLowerCase())}`,
       );
       if (!response.ok) {
-        throw new Error(`The latest ${from} to ${to} exchange rate is unavailable.`);
+        throw new Error(
+          `The latest ${from} to ${to} exchange rate is unavailable.`,
+        );
       }
       const payload: unknown = await response.json();
       if (!validRate(payload)) {
@@ -192,9 +206,14 @@ export async function getLatestExchangeRate(
 
 export function convertMinorUnits(amountMinor: number, rate: number): number {
   const converted = Math.round(amountMinor * rate);
-  if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0 ||
-      !Number.isFinite(rate) || rate <= 0 ||
-      !Number.isSafeInteger(converted) || converted <= 0) {
+  if (
+    !Number.isSafeInteger(amountMinor) ||
+    amountMinor <= 0 ||
+    !Number.isFinite(rate) ||
+    rate <= 0 ||
+    !Number.isSafeInteger(converted) ||
+    converted <= 0
+  ) {
     throw new Error("The converted amount exceeds the supported precision.");
   }
   return converted;

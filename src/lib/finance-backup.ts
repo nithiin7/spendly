@@ -162,7 +162,9 @@ function validateFinanceData(value: unknown): FinanceData {
   hasUniqueIds(budgets, "monthly budget");
 
   if (!value.categories.every(isValidCategory)) {
-    throw new Error("Backup contains a category with missing or invalid fields.");
+    throw new Error(
+      "Backup contains a category with missing or invalid fields.",
+    );
   }
   if (!value.rules.every(isValidRule)) {
     throw new Error("Backup contains a rule with missing or invalid fields.");
@@ -202,7 +204,9 @@ function validateFinanceData(value: unknown): FinanceData {
   }
 
   const categories = value.categories;
-  const categoryById = new Map(categories.map((category) => [category.id, category]));
+  const categoryById = new Map(
+    categories.map((category) => [category.id, category]),
+  );
 
   for (const rule of value.rules) {
     if (!categoryById.has(rule.categoryId)) {

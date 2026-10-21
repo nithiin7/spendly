@@ -4,11 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
-export function RouteErrorPage({
-  reset,
-}: {
-  reset: () => void;
-}) {
+export function RouteErrorPage({ reset }: { reset: () => void }) {
   return (
     <div className="flex min-h-[70vh] items-center justify-center px-5 py-12">
       <motion.section
@@ -27,7 +23,8 @@ export function RouteErrorPage({
           This page hit a snag
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted">
-          Your data is still safe. Try loading the page again, or head back to your overview.
+          Your data is still safe. Try loading the page again, or head back to
+          your overview.
         </p>
         <div className="mt-7 flex flex-wrap justify-center gap-3">
           <button className="button-primary" onClick={reset} type="button">

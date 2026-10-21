@@ -8,10 +8,7 @@ import {
   validateMonthlyBudgets,
 } from "./monthly-budgets.ts";
 import { getMonthlyFinancialSummary } from "./finance-utils.ts";
-import type {
-  MonthlyBudget,
-  Transaction,
-} from "../types/finance.ts";
+import type { MonthlyBudget, Transaction } from "../types/finance.ts";
 
 function transaction(
   id: string,
@@ -32,9 +29,7 @@ function transaction(
   };
 }
 
-function monthlyBudget(
-  overrides: Partial<MonthlyBudget> = {},
-): MonthlyBudget {
+function monthlyBudget(overrides: Partial<MonthlyBudget> = {}): MonthlyBudget {
   return {
     id: "budget-2026-10",
     year: 2026,
@@ -68,11 +63,22 @@ test("calculates overall and category budgets from selected-month expenses only"
   assert.equal(analytics.overall?.remainingPaise, -3000);
   assert.equal(analytics.overall?.utilizationPercent, 130);
   assert.equal(analytics.overall?.status, "over");
-  assert.equal(analytics.categories.find((item) => item.categoryId === "category-1")?.remainingPaise, -2000);
-  assert.equal(analytics.categories.find((item) => item.categoryId === "category-1")?.status, "over");
+  assert.equal(
+    analytics.categories.find((item) => item.categoryId === "category-1")
+      ?.remainingPaise,
+    -2000,
+  );
+  assert.equal(
+    analytics.categories.find((item) => item.categoryId === "category-1")
+      ?.status,
+    "over",
+  );
   assert.equal(analytics.unbudgetedExpensePaise, 3000);
   assert.deepEqual(
-    analytics.unbudgetedCategories.map((item) => [item.categoryId, item.spentPaise]),
+    analytics.unbudgetedCategories.map((item) => [
+      item.categoryId,
+      item.spentPaise,
+    ]),
     [["category-3", 3000]],
   );
   assert.deepEqual(transactions, original);

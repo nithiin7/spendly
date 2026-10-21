@@ -122,7 +122,11 @@ test("reconciles ID collisions and related records without replacing cloud value
   };
   let generatedId = 0;
 
-  const result = reconcileLocalFinanceData(cloud, local, () => `remapped-${++generatedId}`);
+  const result = reconcileLocalFinanceData(
+    cloud,
+    local,
+    () => `remapped-${++generatedId}`,
+  );
   const importedTransaction = result.data.transactions.find(
     (transaction) => transaction.description === "Local record",
   );
@@ -134,12 +138,14 @@ test("reconciles ID collisions and related records without replacing cloud value
     result.data.recurringOccurrences[0].transactionId,
     importedTransaction.id,
   );
-  assert.equal(result.data.recurringOccurrences[0].categoryId, cloudCategory.id);
-  assert.equal(result.data.recurringRules[0].categoryId, cloudCategory.id);
-  assert.deepEqual(
-    result.data.budgets[0].allocations,
-    [{ categoryId: cloudCategory.id, amountPaise: 400 }],
+  assert.equal(
+    result.data.recurringOccurrences[0].categoryId,
+    cloudCategory.id,
   );
+  assert.equal(result.data.recurringRules[0].categoryId, cloudCategory.id);
+  assert.deepEqual(result.data.budgets[0].allocations, [
+    { categoryId: cloudCategory.id, amountPaise: 400 },
+  ]);
   assert.equal(result.data.budgets[0].overallLimitPaise, 10_000);
   assert.equal(result.conflictsResolved, 4);
   assert.deepEqual(result.added, {
@@ -221,11 +227,20 @@ test("keeps collision remaps stable when a partial import is retried", () => {
   assert.equal(
     retry.data.transactions.length,
     2,
-    JSON.stringify(retry.data.transactions.map(({ id, description }) => ({ id, description }))),
+    JSON.stringify(
+      retry.data.transactions.map(({ id, description }) => ({
+        id,
+        description,
+      })),
+    ),
   );
   assert.equal(
-    retry.data.transactions.find((transaction) => transaction.description === "Local record")?.id,
-    firstAttempt.data.transactions.find((transaction) => transaction.description === "Local record")?.id,
+    retry.data.transactions.find(
+      (transaction) => transaction.description === "Local record",
+    )?.id,
+    firstAttempt.data.transactions.find(
+      (transaction) => transaction.description === "Local record",
+    )?.id,
   );
   assert.equal(retry.added.transactions, 0);
 });

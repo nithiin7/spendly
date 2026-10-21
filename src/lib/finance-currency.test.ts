@@ -123,10 +123,7 @@ test("removes original-currency metadata for a permanent conversion", async () =
     assert.equal(result.transactions[0].amountPaise, 5000);
     assert.equal(result.transactions[0].originalAmountPaise, undefined);
     assert.equal(result.budgets[0].originalOverallLimitPaise, undefined);
-    assert.equal(
-      result.budgets[0].allocations[0].originalCurrency,
-      undefined,
-    );
+    assert.equal(result.budgets[0].allocations[0].originalCurrency, undefined);
   } finally {
     globalThis.fetch = originalFetch;
   }

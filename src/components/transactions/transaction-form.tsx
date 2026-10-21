@@ -62,18 +62,18 @@ export function TransactionForm({
   const availableCategories = categories.filter(
     (category) => category.type === type,
   );
-  const [categoryId, setCategoryId] = useState(
-    transaction?.categoryId ?? "",
-  );
+  const [categoryId, setCategoryId] = useState(transaction?.categoryId ?? "");
   const [categorySource, setCategorySource] = useState<"suggested" | "manual">(
-    transaction ? transaction.categorySource ?? "manual" : "suggested",
+    transaction ? (transaction.categorySource ?? "manual") : "suggested",
   );
   const [description, setDescription] = useState(
     transaction?.description ?? "",
   );
   const [amount, setAmount] = useState(
     transaction
-      ? ((transaction.originalAmountPaise ?? transaction.amountPaise) / 100).toFixed(2)
+      ? (
+          (transaction.originalAmountPaise ?? transaction.amountPaise) / 100
+        ).toFixed(2)
       : "",
   );
   const [currency, setCurrency] = useState(
@@ -102,7 +102,11 @@ export function TransactionForm({
 
   useEffect(() => {
     const enteredAmount = parseCurrencyAmount(amount);
-    if (type !== "expense" || currency === defaultCurrency || enteredAmount === null) {
+    if (
+      type !== "expense" ||
+      currency === defaultCurrency ||
+      enteredAmount === null
+    ) {
       return;
     }
     let active = true;
@@ -169,14 +173,20 @@ export function TransactionForm({
     event.preventDefault();
     const enteredAmountPaise = parseCurrencyAmount(amount);
     if (enteredAmountPaise === null) {
-      setError(`Enter an amount greater than 0 ${currency}, with up to two decimal places.`);
+      setError(
+        `Enter an amount greater than 0 ${currency}, with up to two decimal places.`,
+      );
       return;
     }
     if (!description.trim()) {
       setError("Enter a description for this transaction.");
       return;
     }
-    if (!categories.some((category) => category.id === categoryId && category.type === type)) {
+    if (
+      !categories.some(
+        (category) => category.id === categoryId && category.type === type,
+      )
+    ) {
       setError("Choose a category for this transaction.");
       return;
     }
@@ -198,7 +208,9 @@ export function TransactionForm({
               exchangeRateDate: rate.rateDate,
             }
           : {}),
-        ...(paymentMethod.trim() ? { paymentMethod: paymentMethod.trim() } : {}),
+        ...(paymentMethod.trim()
+          ? { paymentMethod: paymentMethod.trim() }
+          : {}),
         ...(notes.trim() ? { notes: notes.trim() } : {}),
       });
       if (saved) onClose();
@@ -222,7 +234,9 @@ export function TransactionForm({
       setError(null);
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : "Category could not be added.",
+        caught instanceof Error
+          ? caught.message
+          : "Category could not be added.",
       );
     }
   }
@@ -290,7 +304,9 @@ export function TransactionForm({
             />
           </label>
           <label className="space-y-1.5">
-            <span className="text-sm font-medium text-ink">Amount ({currency})</span>
+            <span className="text-sm font-medium text-ink">
+              Amount ({currency})
+            </span>
             <div className="relative">
               <input
                 aria-describedby="amount-hint"
@@ -310,17 +326,24 @@ export function TransactionForm({
             </span>
             {currency !== defaultCurrency &&
               convertedPreview?.key === previewKey && (
-              <span className="block text-xs font-medium text-forest-800" aria-live="polite">
-                Approximately {formatCurrency(convertedPreview.amountPaise, defaultCurrency)} at the latest rate
-                ({convertedPreview.rateDate}).
-              </span>
-            )}
+                <span
+                  className="block text-xs font-medium text-forest-800"
+                  aria-live="polite"
+                >
+                  Approximately{" "}
+                  {formatCurrency(
+                    convertedPreview.amountPaise,
+                    defaultCurrency,
+                  )}{" "}
+                  at the latest rate ({convertedPreview.rateDate}).
+                </span>
+              )}
             {currency !== defaultCurrency &&
               previewError?.key === previewKey && (
-              <span className="block text-xs text-red-700" role="status">
-                Rate preview unavailable: {previewError.message}
-              </span>
-            )}
+                <span className="block text-xs text-red-700" role="status">
+                  Rate preview unavailable: {previewError.message}
+                </span>
+              )}
           </label>
           {type === "expense" && (
             <label className="space-y-1.5">
@@ -349,7 +372,10 @@ export function TransactionForm({
             />
           </label>
           <div className="space-y-1.5 sm:col-span-2">
-            <label className="text-sm font-medium text-ink" htmlFor="categoryId">
+            <label
+              className="text-sm font-medium text-ink"
+              htmlFor="categoryId"
+            >
               Category
             </label>
             <div className="flex gap-2">
@@ -468,7 +494,8 @@ export function TransactionForm({
           </div>
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-ink">
-              Payment method <span className="font-normal text-muted">· optional</span>
+              Payment method{" "}
+              <span className="font-normal text-muted">· optional</span>
             </span>
             <input
               className="form-input"
@@ -495,7 +522,10 @@ export function TransactionForm({
         </div>
 
         {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+          <p
+            className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+            role="alert"
+          >
             {error}
           </p>
         )}

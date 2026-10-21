@@ -21,6 +21,7 @@ Open [http://localhost:3000](http://localhost:3000). The project currently has n
 4. Before opening a pull request, run the relevant checks:
 
    ```bash
+   npm run format:check
    npm run lint
    npm run typecheck
    npm test

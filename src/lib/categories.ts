@@ -1,12 +1,6 @@
 import type { Category, CategoryRule } from "@/types/finance";
 
-const categoryColors = [
-  "#214c3a",
-  "#70927d",
-  "#a9bcae",
-  "#d1a56f",
-  "#d9dfd8",
-];
+const categoryColors = ["#214c3a", "#70927d", "#a9bcae", "#d1a56f", "#d9dfd8"];
 
 const defaultCategoryNames = [
   "Rent",
@@ -50,27 +44,67 @@ type DefaultRuleDefinition = {
 
 const defaultRuleDefinitions: DefaultRuleDefinition[] = [
   { category: "Rent", keywords: ["monthly rent"], priority: 110 },
-  { category: "Household", keywords: ["amazon household", "household items"], priority: 105 },
-  { category: "Utilities", keywords: ["bescom", "electricity bill"], priority: 100 },
-  { category: "Food and dining", keywords: ["swiggy", "zomato"], priority: 100 },
-  { category: "Groceries", keywords: ["bigbasket", "big basket"], priority: 100 },
-  { category: "Subscriptions", keywords: ["netflix subscription"], priority: 100 },
+  {
+    category: "Household",
+    keywords: ["amazon household", "household items"],
+    priority: 105,
+  },
+  {
+    category: "Utilities",
+    keywords: ["bescom", "electricity bill"],
+    priority: 100,
+  },
+  {
+    category: "Food and dining",
+    keywords: ["swiggy", "zomato"],
+    priority: 100,
+  },
+  {
+    category: "Groceries",
+    keywords: ["bigbasket", "big basket"],
+    priority: 100,
+  },
+  {
+    category: "Subscriptions",
+    keywords: ["netflix subscription"],
+    priority: 100,
+  },
   { category: "Travel", keywords: ["flight ticket"], priority: 100 },
   { category: "Transport", keywords: ["uber ride"], priority: 100 },
   { category: "Fuel", keywords: ["petrol pump"], priority: 100 },
   { category: "Rent", keywords: ["rent"], priority: 70 },
   { category: "Groceries", keywords: ["groceries", "grocery"], priority: 65 },
-  { category: "Food and dining", keywords: ["dinner", "restaurant", "takeaway"], priority: 60 },
+  {
+    category: "Food and dining",
+    keywords: ["dinner", "restaurant", "takeaway"],
+    priority: 60,
+  },
   { category: "Fuel", keywords: ["petrol", "diesel", "fuel"], priority: 60 },
   { category: "Travel", keywords: ["flight", "hotel", "airbnb"], priority: 60 },
-  { category: "Subscriptions", keywords: ["subscription", "netflix", "spotify"], priority: 60 },
-  { category: "Transport", keywords: ["uber", "ola cab", "metro", "bus fare"], priority: 60 },
-  { category: "Utilities", keywords: ["electricity", "water bill", "internet bill"], priority: 60 },
-  { category: "Household", keywords: ["household", "cleaning supplies"], priority: 55 },
+  {
+    category: "Subscriptions",
+    keywords: ["subscription", "netflix", "spotify"],
+    priority: 60,
+  },
+  {
+    category: "Transport",
+    keywords: ["uber", "ola cab", "metro", "bus fare"],
+    priority: 60,
+  },
+  {
+    category: "Utilities",
+    keywords: ["electricity", "water bill", "internet bill"],
+    priority: 60,
+  },
+  {
+    category: "Household",
+    keywords: ["household", "cleaning supplies"],
+    priority: 55,
+  },
 ];
 
-export const defaultCategoryRules: CategoryRule[] =
-  defaultRuleDefinitions.map((rule, index) => {
+export const defaultCategoryRules: CategoryRule[] = defaultRuleDefinitions.map(
+  (rule, index) => {
     const categoryId = categoryIdByName.get(rule.category);
     if (!categoryId) {
       throw new Error(`No default category exists for rule: ${rule.category}`);
@@ -82,7 +116,8 @@ export const defaultCategoryRules: CategoryRule[] =
       priority: rule.priority,
       isDefault: true,
     };
-  });
+  },
+);
 
 export function createCategory(
   name: string,
@@ -95,7 +130,8 @@ export function createCategory(
   }
   if (
     existingCategories.some(
-      (category) => category.name.toLocaleLowerCase() === trimmedName.toLocaleLowerCase(),
+      (category) =>
+        category.name.toLocaleLowerCase() === trimmedName.toLocaleLowerCase(),
     )
   ) {
     throw new Error("A category with that name already exists.");

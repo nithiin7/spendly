@@ -51,7 +51,10 @@ export function SavingsHealth({
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-xl border border-border p-4">
           <p className="text-xs text-muted">Actual income</p>
-          <p className="mt-1 text-lg font-semibold tabular-nums text-ink" data-financial-value>
+          <p
+            className="mt-1 text-lg font-semibold tabular-nums text-ink"
+            data-financial-value
+          >
             {formatRupees(selectedMonth.incomePaise, currency)}
           </p>
         </article>
@@ -59,9 +62,7 @@ export function SavingsHealth({
           <p className="text-xs text-muted">Income left after expenses</p>
           <p
             className={`mt-1 text-lg font-semibold tabular-nums ${
-              selectedMonth.actualSavingsPaise < 0
-                ? "text-red-700"
-                : "text-ink"
+              selectedMonth.actualSavingsPaise < 0 ? "text-red-700" : "text-ink"
             }`}
             data-financial-value
           >
@@ -74,9 +75,7 @@ export function SavingsHealth({
           <p className="mt-1 text-lg font-semibold tabular-nums text-ink">
             {formatPercent(selectedMonth.actualSavingsRate)}
           </p>
-          <p className="mt-1 text-xs text-muted">
-            Income left ÷ actual income
-          </p>
+          <p className="mt-1 text-xs text-muted">Income left ÷ actual income</p>
         </article>
         <article className="rounded-xl border border-sage-200 bg-sage-100/50 p-4">
           <p className="text-xs text-muted">Planned savings estimate</p>

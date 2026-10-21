@@ -56,11 +56,7 @@ export type TransactionInput = Omit<
 >;
 
 export type RecurrenceFrequency =
-  | "weekly"
-  | "monthly"
-  | "quarterly"
-  | "yearly"
-  | "custom";
+  "weekly" | "monthly" | "quarterly" | "yearly" | "custom";
 
 export type RecurringRule = OriginalCurrencyAmount & {
   id: string;

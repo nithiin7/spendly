@@ -30,7 +30,9 @@ export function SpendingChart({
           >
             Monthly spending trend
           </h2>
-          <p className="mt-1 text-sm text-muted">Expense totals across six months</p>
+          <p className="mt-1 text-sm text-muted">
+            Expense totals across six months
+          </p>
         </div>
         <span className="rounded-lg bg-canvas px-2.5 py-1.5 text-xs font-medium text-muted">
           Six months
@@ -84,9 +86,15 @@ export function SpendingChart({
         </p>
       )}
       <div className="mt-5 flex items-center gap-2 border-t border-border pt-4">
-        <span aria-hidden="true" className="size-2 rounded-full bg-forest-700" />
+        <span
+          aria-hidden="true"
+          className="size-2 rounded-full bg-forest-700"
+        />
         <span className="text-xs text-muted">Spending</span>
-        <span className="ml-auto text-xs font-semibold text-ink" data-financial-value>
+        <span
+          className="ml-auto text-xs font-semibold text-ink"
+          data-financial-value
+        >
           {formatRupees(selectedSpending, currency)} selected month
         </span>
       </div>

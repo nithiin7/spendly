@@ -177,7 +177,16 @@ export type Database = {
         }
       >;
       budget_allocations: Table<
-        { user_id: string; budget_id: string; category_id: string; category_type: "expense"; amount_paise: number; original_amount_paise: number | null; original_currency: string | null; exchange_rate_date: string | null },
+        {
+          user_id: string;
+          budget_id: string;
+          category_id: string;
+          category_type: "expense";
+          amount_paise: number;
+          original_amount_paise: number | null;
+          original_currency: string | null;
+          exchange_rate_date: string | null;
+        },
         {
           user_id: string;
           budget_id: string;

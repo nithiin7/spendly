@@ -188,10 +188,7 @@ test("rejects invalid budget amounts, duplicate monthly budgets, and duplicate a
 
   const duplicateMonth: FinanceData = {
     ...data,
-    budgets: [
-      validBudget,
-      { ...validBudget, id: "budget-october-duplicate" },
-    ],
+    budgets: [validBudget, { ...validBudget, id: "budget-october-duplicate" }],
   };
   assert.throws(
     () => parseFinanceBackup(serializedBackup(duplicateMonth)),
@@ -236,7 +233,8 @@ test("rejects missing fields, invalid amounts, duplicate IDs, and broken referen
   );
 
   const missingField = structuredClone(data);
-  delete (missingField.categories[0] as Partial<(typeof data.categories)[0]>).color;
+  delete (missingField.categories[0] as Partial<(typeof data.categories)[0]>)
+    .color;
   assert.throws(
     () => parseFinanceBackup(serializedBackup(missingField)),
     /category with missing or invalid fields/,
@@ -316,7 +314,11 @@ test("merge adds new records without changing current data and rejects conflicts
     ...data,
     transactions: [
       data.transactions[1],
-      { ...data.transactions[0], id: "expense-2", description: "Another market" },
+      {
+        ...data.transactions[0],
+        id: "expense-2",
+        description: "Another market",
+      },
     ],
   };
   const original = structuredClone(current);
@@ -366,8 +368,7 @@ test("merge adds monthly budgets and rejects a second budget for the same month 
   };
   const original = structuredClone(conflictingCurrent);
   assert.throws(
-    () =>
-      planFinanceRestore(conflictingCurrent, incoming, "merge"),
+    () => planFinanceRestore(conflictingCurrent, incoming, "merge"),
     /monthly budget with invalid fields/,
   );
   assert.deepEqual(conflictingCurrent, original);

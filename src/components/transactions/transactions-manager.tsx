@@ -60,11 +60,7 @@ type Confirmation =
   | { type: "clear" }
   | null;
 
-type TransactionSort =
-  | "date-desc"
-  | "date-asc"
-  | "amount-desc"
-  | "amount-asc";
+type TransactionSort = "date-desc" | "date-asc" | "amount-desc" | "amount-asc";
 
 function formatMonth(monthKey: string): string {
   const [year, month] = monthKey.split("-").map(Number);
@@ -146,13 +142,11 @@ export function TransactionsManager({
 
   async function confirmAction(): Promise<boolean> {
     if (!confirmation) return false;
-    const succeeded = await (
-      confirmation.type === "delete"
-        ? onDelete(confirmation.transaction.id)
-        : confirmation.type === "reset"
-          ? onResetDemo()
-          : onClearAll()
-    );
+    const succeeded = await (confirmation.type === "delete"
+      ? onDelete(confirmation.transaction.id)
+      : confirmation.type === "reset"
+        ? onResetDemo()
+        : onClearAll());
     if (succeeded) setConfirmation(null);
     return succeeded;
   }
@@ -319,7 +313,14 @@ function TransactionPanel({
             Transactions
           </h2>
           <p className="mt-1 text-sm text-muted">
-            {transactions.length} {transactions.length === 1 ? (storageMode === "cloud" ? "record in your account" : "local record") : (storageMode === "cloud" ? "records in your account" : "local records")}
+            {transactions.length}{" "}
+            {transactions.length === 1
+              ? storageMode === "cloud"
+                ? "record in your account"
+                : "local record"
+              : storageMode === "cloud"
+                ? "records in your account"
+                : "local records"}
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
@@ -392,9 +393,7 @@ function TransactionPanel({
           <span className="sr-only">Filter by transaction type</span>
           <CustomDropdown
             className="form-input"
-            onChange={(type) =>
-              onSelectType(type as TransactionType | "all")
-            }
+            onChange={(type) => onSelectType(type as TransactionType | "all")}
             options={[
               { value: "all", label: "All types" },
               { value: "expense", label: "Expenses" },
@@ -422,9 +421,7 @@ function TransactionPanel({
           <span className="sr-only">Sort transactions</span>
           <CustomDropdown
             className="form-input"
-            onChange={(sort) =>
-              onSelectSort(sort as TransactionSort)
-            }
+            onChange={(sort) => onSelectSort(sort as TransactionSort)}
             options={[
               { value: "date-desc", label: "Newest first" },
               { value: "date-asc", label: "Oldest first" },
@@ -603,7 +600,11 @@ function TransactionPanel({
               Clear filters
             </button>
           ) : transactions.length === 0 ? (
-            <button className="button-primary mt-4" onClick={onAdd} type="button">
+            <button
+              className="button-primary mt-4"
+              onClick={onAdd}
+              type="button"
+            >
               <Plus aria-hidden="true" className="size-4" />
               Add transaction
             </button>
@@ -656,7 +657,8 @@ function ConfirmationDialog({
       <div className="space-y-4 px-5 py-5 sm:px-6">
         {error && (
           <p className="text-sm text-red-700" role="alert">
-            The action could not be completed. Check the storage error above and try again.
+            The action could not be completed. Check the storage error above and
+            try again.
           </p>
         )}
         <div className="flex justify-end gap-2">

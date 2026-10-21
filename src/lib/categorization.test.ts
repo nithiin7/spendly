@@ -68,7 +68,10 @@ test("uses Other when no rule is a reliable match", () => {
     )?.categoryId,
     categoryId("Other"),
   );
-  assert.equal(suggestCategory("", defaultCategories, defaultCategoryRules), null);
+  assert.equal(
+    suggestCategory("", defaultCategories, defaultCategoryRules),
+    null,
+  );
 });
 
 test("higher rule priority wins overlapping matches; phrase length breaks ties", () => {
@@ -112,11 +115,8 @@ test("higher rule priority wins overlapping matches; phrase length breaks ties",
     },
   ];
   assert.equal(
-    suggestCategory(
-      "Coffee shop",
-      defaultCategories,
-      explicitPriorityRules,
-    )?.categoryId,
+    suggestCategory("Coffee shop", defaultCategories, explicitPriorityRules)
+      ?.categoryId,
     categoryId("Fuel"),
   );
 });
@@ -159,11 +159,10 @@ test("custom category rules can be created and edited", () => {
   assert.deepEqual(rule.keywords, ["local mart", "corner shop"]);
   assert.equal(rule.isDefault, false);
   assert.equal(
-    suggestCategory(
-      "Local-Mart groceries",
-      defaultCategories,
-      [...defaultCategoryRules, rule],
-    )?.categoryId,
+    suggestCategory("Local-Mart groceries", defaultCategories, [
+      ...defaultCategoryRules,
+      rule,
+    ])?.categoryId,
     categoryId("Groceries"),
   );
 
@@ -178,7 +177,8 @@ test("custom category rules can be created and edited", () => {
     defaultCategories,
   );
   assert.equal(
-    suggestCategory("Home supplies", defaultCategories, editedRules)?.categoryId,
+    suggestCategory("Home supplies", defaultCategories, editedRules)
+      ?.categoryId,
     categoryId("Household"),
   );
 });

@@ -26,7 +26,8 @@ export function NotFoundPage() {
           Looks like this page wandered off
         </h1>
         <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-muted">
-          The link may be outdated, or the page may have moved. Let’s get you back on track.
+          The link may be outdated, or the page may have moved. Let’s get you
+          back on track.
         </p>
         <div className="mt-7 flex flex-wrap justify-center gap-3">
           <Link className="button-primary" href="/">

@@ -41,7 +41,10 @@ export function RecentTransactions({
           </h2>
           <p className="mt-1 text-sm text-muted">Your latest activity</p>
         </div>
-        <Link className="text-sm font-medium text-forest-800 hover:underline" href="/transactions">
+        <Link
+          className="text-sm font-medium text-forest-800 hover:underline"
+          href="/transactions"
+        >
           View all
         </Link>
       </div>
@@ -74,7 +77,8 @@ export function RecentTransactions({
                     {transaction.description}
                   </p>
                   <p className="mt-0.5 truncate text-xs text-muted">
-                    {category?.name ?? "Uncategorized"} · {formatFinanceDate(transaction.date, dateFormat)}
+                    {category?.name ?? "Uncategorized"} ·{" "}
+                    {formatFinanceDate(transaction.date, dateFormat)}
                   </p>
                 </div>
                 <span

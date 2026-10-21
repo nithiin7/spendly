@@ -90,10 +90,8 @@ export function CalendarPicker({
   const [popoverStyle, setPopoverStyle] = useState<CSSProperties | null>(null);
   const valueParts = parseYearMonth(value);
   const today = new Date();
-  const initialParts =
-    valueParts ??
-    parseYearMonth(min ?? "") ??
-    [today.getFullYear(), today.getMonth()];
+  const initialParts = valueParts ??
+    parseYearMonth(min ?? "") ?? [today.getFullYear(), today.getMonth()];
   const [visibleYear, setVisibleYear] = useState(initialParts[0]);
   const [visibleMonth, setVisibleMonth] = useState(initialParts[1]);
 
@@ -176,10 +174,8 @@ export function CalendarPicker({
   }, [isOpen, portalTarget, mode, visibleYear, visibleMonth, clearable, value]);
 
   function openPicker() {
-    const parts =
-      parseYearMonth(value) ??
-      parseYearMonth(min ?? "") ??
-      [today.getFullYear(), today.getMonth()];
+    const parts = parseYearMonth(value) ??
+      parseYearMonth(min ?? "") ?? [today.getFullYear(), today.getMonth()];
     setVisibleYear(parts[0]);
     setVisibleMonth(parts[1]);
     if (!isOpen) {
@@ -240,141 +236,149 @@ export function CalendarPicker({
         <span className={value ? "text-ink" : "text-muted"}>
           {formatValue(value, mode, dateFormat)}
         </span>
-        <CalendarDays aria-hidden="true" className="size-4 shrink-0 text-muted" />
+        <CalendarDays
+          aria-hidden="true"
+          className="size-4 shrink-0 text-muted"
+        />
       </button>
 
       {isOpen &&
         portalTarget &&
         createPortal(
-        <motion.div
-          aria-label={mode === "date" ? "Choose a date" : "Choose a month"}
-          className="fixed z-100 w-[min(19rem,calc(100vw-3rem))] overflow-y-auto rounded-2xl border border-border bg-white p-4 shadow-xl"
-          id={popoverId}
-          role="dialog"
-          ref={popoverRef}
-          style={{
-            ...popoverStyle,
-            visibility: popoverStyle ? "visible" : "hidden",
-          }}
-          initial={{ opacity: 0, scale: 0.98, y: 4 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.14, ease: "easeOut" }}
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <button
-              aria-label={mode === "date" ? "Previous month" : "Previous year"}
-              className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-canvas hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
-              disabled={!canGoPrevious}
-              onClick={() => shiftMonth(mode === "date" ? -1 : -12)}
-              type="button"
-            >
-              <ChevronLeft aria-hidden="true" className="size-4" />
-            </button>
-            <p className="text-sm font-semibold text-ink">
-              {mode === "date"
-                ? new Intl.DateTimeFormat("en-IN", {
-                    month: "long",
-                    year: "numeric",
-                    timeZone: "UTC",
-                  }).format(new Date(Date.UTC(visibleYear, visibleMonth, 1)))
-                : visibleYear}
-            </p>
-            <button
-              aria-label={mode === "date" ? "Next month" : "Next year"}
-              className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-canvas hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
-              disabled={!canGoNext}
-              onClick={() => shiftMonth(mode === "date" ? 1 : 12)}
-              type="button"
-            >
-              <ChevronRight aria-hidden="true" className="size-4" />
-            </button>
-          </div>
+          <motion.div
+            aria-label={mode === "date" ? "Choose a date" : "Choose a month"}
+            className="fixed z-100 w-[min(19rem,calc(100vw-3rem))] overflow-y-auto rounded-2xl border border-border bg-white p-4 shadow-xl"
+            id={popoverId}
+            role="dialog"
+            ref={popoverRef}
+            style={{
+              ...popoverStyle,
+              visibility: popoverStyle ? "visible" : "hidden",
+            }}
+            initial={{ opacity: 0, scale: 0.98, y: 4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.14, ease: "easeOut" }}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <button
+                aria-label={
+                  mode === "date" ? "Previous month" : "Previous year"
+                }
+                className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-canvas hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={!canGoPrevious}
+                onClick={() => shiftMonth(mode === "date" ? -1 : -12)}
+                type="button"
+              >
+                <ChevronLeft aria-hidden="true" className="size-4" />
+              </button>
+              <p className="text-sm font-semibold text-ink">
+                {mode === "date"
+                  ? new Intl.DateTimeFormat("en-IN", {
+                      month: "long",
+                      year: "numeric",
+                      timeZone: "UTC",
+                    }).format(new Date(Date.UTC(visibleYear, visibleMonth, 1)))
+                  : visibleYear}
+              </p>
+              <button
+                aria-label={mode === "date" ? "Next month" : "Next year"}
+                className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-canvas hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={!canGoNext}
+                onClick={() => shiftMonth(mode === "date" ? 1 : 12)}
+                type="button"
+              >
+                <ChevronRight aria-hidden="true" className="size-4" />
+              </button>
+            </div>
 
-          {mode === "date" ? (
-            <div aria-label="Calendar dates" className="grid grid-cols-7 gap-1">
-              {WEEKDAYS.map((weekday) => (
-                <span
-                  aria-label={weekday}
-                  className="py-1 text-center text-xs font-medium text-muted"
-                  key={weekday}
-                >
-                  {weekday.slice(0, 1)}
-                </span>
-              ))}
-              {Array.from({ length: firstWeekday }, (_, index) => (
-                <span aria-hidden="true" key={`empty-${index}`} />
-              ))}
-              {Array.from({ length: daysInMonth }, (_, index) => {
-                const day = index + 1;
-                const dateValue = `${visibleMonthKey}-${String(day).padStart(2, "0")}`;
-                const disabled =
-                  (min !== undefined && dateValue < min) ||
-                  (max !== undefined && dateValue > max);
-                const selected =
-                  selectedMonth === visibleMonthKey && selectedDay === day;
-                return (
-                  <button
-                    aria-pressed={selected}
-                    className={`flex aspect-square items-center justify-center rounded-lg text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 ${
-                      selected
-                        ? "bg-forest-800 font-semibold text-white"
-                        : dateValue === todayString
-                          ? "bg-sage-100 font-semibold text-forest-800"
+            {mode === "date" ? (
+              <div
+                aria-label="Calendar dates"
+                className="grid grid-cols-7 gap-1"
+              >
+                {WEEKDAYS.map((weekday) => (
+                  <span
+                    aria-label={weekday}
+                    className="py-1 text-center text-xs font-medium text-muted"
+                    key={weekday}
+                  >
+                    {weekday.slice(0, 1)}
+                  </span>
+                ))}
+                {Array.from({ length: firstWeekday }, (_, index) => (
+                  <span aria-hidden="true" key={`empty-${index}`} />
+                ))}
+                {Array.from({ length: daysInMonth }, (_, index) => {
+                  const day = index + 1;
+                  const dateValue = `${visibleMonthKey}-${String(day).padStart(2, "0")}`;
+                  const disabled =
+                    (min !== undefined && dateValue < min) ||
+                    (max !== undefined && dateValue > max);
+                  const selected =
+                    selectedMonth === visibleMonthKey && selectedDay === day;
+                  return (
+                    <button
+                      aria-pressed={selected}
+                      className={`flex aspect-square items-center justify-center rounded-lg text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 ${
+                        selected
+                          ? "bg-forest-800 font-semibold text-white"
+                          : dateValue === todayString
+                            ? "bg-sage-100 font-semibold text-forest-800"
+                            : "text-ink hover:bg-sage-100"
+                      } disabled:cursor-not-allowed disabled:text-muted/40 disabled:hover:bg-transparent`}
+                      disabled={disabled}
+                      key={dateValue}
+                      onClick={() => selectDate(day)}
+                      type="button"
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {MONTHS.map((month, index) => {
+                  const candidate = monthValue(visibleYear, index);
+                  const disabled =
+                    (minimumMonth !== undefined && candidate < minimumMonth) ||
+                    (maximumMonth !== undefined && candidate > maximumMonth);
+                  const selected = selectedMonth === candidate;
+                  return (
+                    <button
+                      aria-pressed={selected}
+                      className={`rounded-xl px-2 py-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 ${
+                        selected
+                          ? "bg-forest-800 font-semibold text-white"
                           : "text-ink hover:bg-sage-100"
-                    } disabled:cursor-not-allowed disabled:text-muted/40 disabled:hover:bg-transparent`}
-                    disabled={disabled}
-                    key={dateValue}
-                    onClick={() => selectDate(day)}
-                    type="button"
-                  >
-                    {day}
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {MONTHS.map((month, index) => {
-                const candidate = monthValue(visibleYear, index);
-                const disabled =
-                  (minimumMonth !== undefined && candidate < minimumMonth) ||
-                  (maximumMonth !== undefined && candidate > maximumMonth);
-                const selected = selectedMonth === candidate;
-                return (
-                  <button
-                    aria-pressed={selected}
-                    className={`rounded-xl px-2 py-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 ${
-                      selected
-                        ? "bg-forest-800 font-semibold text-white"
-                        : "text-ink hover:bg-sage-100"
-                    } disabled:cursor-not-allowed disabled:text-muted/40 disabled:hover:bg-transparent`}
-                    disabled={disabled}
-                    key={candidate}
-                    onClick={() => selectMonth(index)}
-                    type="button"
-                  >
-                    {month}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                      } disabled:cursor-not-allowed disabled:text-muted/40 disabled:hover:bg-transparent`}
+                      disabled={disabled}
+                      key={candidate}
+                      onClick={() => selectMonth(index)}
+                      type="button"
+                    >
+                      {month}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-          {clearable && value && (
-            <button
-              className="mt-3 w-full rounded-lg border-t border-border pt-3 text-sm font-medium text-muted transition-colors hover:text-ink"
-              onClick={() => {
-                onChange("");
-                setIsOpen(false);
-              }}
-              type="button"
-            >
-              Clear date
-            </button>
-          )}
-        </motion.div>,
-        portalTarget,
-      )}
+            {clearable && value && (
+              <button
+                className="mt-3 w-full rounded-lg border-t border-border pt-3 text-sm font-medium text-muted transition-colors hover:text-ink"
+                onClick={() => {
+                  onChange("");
+                  setIsOpen(false);
+                }}
+                type="button"
+              >
+                Clear date
+              </button>
+            )}
+          </motion.div>,
+          portalTarget,
+        )}
     </div>
   );
 }

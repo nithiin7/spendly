@@ -125,7 +125,9 @@ export function CategoryRulesManager({
     event.preventDefault();
     const input = parseRuleForm(newForm);
     if (!input) {
-      setError("Choose a category, enter keywords, and set a whole-number priority.");
+      setError(
+        "Choose a category, enter keywords, and set a whole-number priority.",
+      );
       return;
     }
     if (!(await onAdd(input))) {
@@ -140,7 +142,9 @@ export function CategoryRulesManager({
     if (!editingForm) return;
     const input = parseRuleForm(editingForm);
     if (!input) {
-      setError("Choose a category, enter keywords, and set a whole-number priority.");
+      setError(
+        "Choose a category, enter keywords, and set a whole-number priority.",
+      );
       return;
     }
     if (!(await onEdit(ruleId, input))) {
@@ -285,7 +289,10 @@ export function CategoryRulesManager({
         </form>
 
         {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+          <p
+            className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+            role="alert"
+          >
             {error}
           </p>
         )}

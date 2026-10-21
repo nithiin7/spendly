@@ -45,19 +45,20 @@ export function suggestCategory(
   const candidates = rules
     .map((rule) => ({
       rule,
-      matchedKeyword:
-        validCategoryIds.has(rule.categoryId)
-          ? rule.keywords
-              .map((keyword) => normalizeDescription(keyword))
-              .filter(
-                (keyword) =>
-                  keyword && containsKeyword(normalizedDescription, keyword),
-              )
-              .sort((left, right) => right.length - left.length)[0]
-          : undefined,
+      matchedKeyword: validCategoryIds.has(rule.categoryId)
+        ? rule.keywords
+            .map((keyword) => normalizeDescription(keyword))
+            .filter(
+              (keyword) =>
+                keyword && containsKeyword(normalizedDescription, keyword),
+            )
+            .sort((left, right) => right.length - left.length)[0]
+        : undefined,
     }))
     .filter(
-      (candidate): candidate is { rule: CategoryRule; matchedKeyword: string } =>
+      (
+        candidate,
+      ): candidate is { rule: CategoryRule; matchedKeyword: string } =>
         candidate.matchedKeyword !== undefined,
     )
     .sort((left, right) => {
@@ -131,7 +132,9 @@ export function createCategoryRule(
     rules.some(
       (rule) =>
         rule.categoryId !== categoryId &&
-        rule.keywords.some((existing) => normalizeDescription(existing) === keyword),
+        rule.keywords.some(
+          (existing) => normalizeDescription(existing) === keyword,
+        ),
     ),
   );
   if (collisions.length > 0) {
@@ -156,7 +159,8 @@ export function updateCategoryRule(
   categories: Category[],
 ): CategoryRule[] {
   const existing = rules.find((rule) => rule.id === ruleId);
-  if (!existing) throw new Error("That categorization rule could not be found.");
+  if (!existing)
+    throw new Error("That categorization rule could not be found.");
   const updated = createCategoryRule(
     updates.categoryId,
     updates.keywords,
@@ -165,7 +169,9 @@ export function updateCategoryRule(
     rules.filter((rule) => rule.id !== ruleId),
   );
   return rules.map((rule) =>
-    rule.id === ruleId ? { ...updated, id: ruleId, isDefault: existing.isDefault } : rule,
+    rule.id === ruleId
+      ? { ...updated, id: ruleId, isDefault: existing.isDefault }
+      : rule,
   );
 }
 
@@ -176,7 +182,9 @@ export function removeCategoryRule(
   const rule = rules.find((item) => item.id === ruleId);
   if (!rule) throw new Error("That categorization rule could not be found.");
   if (rule.isDefault) {
-    throw new Error("Built-in rules cannot be removed, but they can be edited.");
+    throw new Error(
+      "Built-in rules cannot be removed, but they can be edited.",
+    );
   }
   return rules.filter((item) => item.id !== ruleId);
 }

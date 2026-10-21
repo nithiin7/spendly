@@ -61,7 +61,9 @@ function Brand() {
       <span className="flex size-9 items-center justify-center rounded-xl bg-sage-300 text-forest-950">
         <Leaf aria-hidden="true" className="size-5" strokeWidth={2.2} />
       </span>
-      <span className="text-[19px] font-semibold tracking-[-0.04em]">spendly</span>
+      <span className="text-[19px] font-semibold tracking-[-0.04em]">
+        spendly
+      </span>
     </Link>
   );
 }
@@ -208,11 +210,17 @@ function AccountIdentity({ onNavigate }: { onNavigate?: () => void }) {
           </span>
         )}
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium">{username ?? email}</span>
+          <span className="block truncate text-sm font-medium">
+            {username ?? email}
+          </span>
           <span className="block truncate text-xs text-white/45">
             {username ? email : "Private cloud account"}
           </span>
-          {error && <span className="mt-1 block text-xs text-red-200" role="alert">{error}</span>}
+          {error && (
+            <span className="mt-1 block text-xs text-red-200" role="alert">
+              {error}
+            </span>
+          )}
         </span>
       </Link>
       <button

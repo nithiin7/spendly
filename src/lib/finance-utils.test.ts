@@ -67,10 +67,7 @@ test("calculates selected month totals, category totals, count, largest expense,
   assert.equal(summary.previousMonth.incomePaise, 4800000);
   assert.equal(summary.previousMonth.expensePaise, 1700000);
   assert.equal(summary.expenseChangePaise, 425500);
-  assert.equal(
-    summary.expenseChangePercent,
-    (425500 / 1700000) * 100,
-  );
+  assert.equal(summary.expenseChangePercent, (425500 / 1700000) * 100);
 });
 
 test("does not include adjacent dates and separates income from expenses", () => {
@@ -156,15 +153,13 @@ test("calculates income, expenses, net cash flow, and month-over-month changes",
   );
 
   assert.deepEqual(
-    months.map(
-      ({ monthKey, incomePaise, expensePaise, netPaise, change }) => ({
-        monthKey,
-        incomePaise,
-        expensePaise,
-        netPaise,
-        change,
-      }),
-    ),
+    months.map(({ monthKey, incomePaise, expensePaise, netPaise, change }) => ({
+      monthKey,
+      incomePaise,
+      expensePaise,
+      netPaise,
+      change,
+    })),
     [
       {
         monthKey: "2026-09",
@@ -350,13 +345,13 @@ test("analyzes category changes, recurring fixed expenses, and largest transacti
   );
   assert.deepEqual(
     analysis.categoryChanges.map(
-      ({ id, amountPaise, previousAmountPaise, changePaise, changePercent }) => [
+      ({
         id,
         amountPaise,
         previousAmountPaise,
         changePaise,
         changePercent,
-      ],
+      }) => [id, amountPaise, previousAmountPaise, changePaise, changePercent],
     ),
     [
       ["category-3", 325500, 400000, -74500, -18.625],
@@ -374,7 +369,13 @@ test("search, month, type, category, and sorting filters compose correctly acros
   const transactions = [
     transaction("October rent", "expense", "2025-10-01", 5000),
     transaction("October income", "income", "2026-10-01", 20000),
-    transaction("October groceries", "expense", "2026-10-15", 8000, "category-3"),
+    transaction(
+      "October groceries",
+      "expense",
+      "2026-10-15",
+      8000,
+      "category-3",
+    ),
   ];
   const filtered = filterAndSortTransactions(transactions, {
     query: "october",
@@ -407,7 +408,7 @@ test("CSV export has labeled ISO dates, exact INR amounts, quoted fields, and sa
         ...transaction("csv", "expense", "2026-10-14", 12345),
         description: 'Market, "fresh"',
         paymentMethod: "UPI",
-        notes: "=HYPERLINK(\"https://example.com\")",
+        notes: '=HYPERLINK("https://example.com")',
         categorySource: "manual",
       },
     ],

@@ -22,7 +22,10 @@ export function monthlyBudgetMonthKey(
   return `${budget.year}-${String(budget.month).padStart(2, "0")}`;
 }
 
-function getProgress(spentPaise: number, budgetPaise: number): BudgetProgress | null {
+function getProgress(
+  spentPaise: number,
+  budgetPaise: number,
+): BudgetProgress | null {
   if (!Number.isSafeInteger(budgetPaise) || budgetPaise <= 0) return null;
   const utilizationPercent = (spentPaise / budgetPaise) * 100;
   const status: BudgetStatus =
@@ -88,14 +91,13 @@ export function calculateMonthlyBudgetAnalytics(
     ...allocations.keys(),
     ...categorySpending.keys(),
   ]);
-  const categoryAnalyses: BudgetCategoryAnalysis[] = [...categoryIds].map(
-    (categoryId) => {
+  const categoryAnalyses: BudgetCategoryAnalysis[] = [...categoryIds]
+    .map((categoryId) => {
       const category = categoryById.get(categoryId);
       const spentPaise = categorySpending.get(categoryId) ?? 0;
-      const progress =
-        allocations.has(categoryId)
-          ? getProgress(spentPaise, allocations.get(categoryId)!)
-          : null;
+      const progress = allocations.has(categoryId)
+        ? getProgress(spentPaise, allocations.get(categoryId)!)
+        : null;
       return {
         categoryId,
         label: category?.name ?? "Unknown category",
@@ -106,12 +108,12 @@ export function calculateMonthlyBudgetAnalytics(
         utilizationPercent: progress?.utilizationPercent ?? null,
         status: progress?.status ?? null,
       };
-    },
-  ).sort(
-    (left, right) =>
-      right.spentPaise - left.spentPaise ||
-      left.label.localeCompare(right.label),
-  );
+    })
+    .sort(
+      (left, right) =>
+        right.spentPaise - left.spentPaise ||
+        left.label.localeCompare(right.label),
+    );
   const highestSpendingCategories = categoryAnalyses.filter(
     (category) => category.spentPaise > 0,
   );
@@ -199,9 +201,7 @@ export function getRepeatedBudgetOverruns(
         overBudgetMonths: 0,
       };
       performance.budgetedMonths += 1;
-      if (
-        (spentByCategory.get(category.id) ?? 0) > allocation.amountPaise
-      ) {
+      if ((spentByCategory.get(category.id) ?? 0) > allocation.amountPaise) {
         performance.overBudgetMonths += 1;
       }
       categoryPerformance.set(category.id, performance);
@@ -312,5 +312,7 @@ export function copyPreviousMonthAllocations(
   const source = budgets.find(
     (item) => monthlyBudgetMonthKey(item) === previousKey,
   );
-  return source ? source.allocations.map((allocation) => ({ ...allocation })) : null;
+  return source
+    ? source.allocations.map((allocation) => ({ ...allocation }))
+    : null;
 }

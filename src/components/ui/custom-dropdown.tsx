@@ -52,7 +52,8 @@ export function CustomDropdown({
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null);
   const selectedIndex = options.findIndex((option) => option.value === value);
-  const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : undefined;
+  const selectedOption =
+    selectedIndex >= 0 ? options[selectedIndex] : undefined;
   const enabledOptions = options
     .map((option, index) => ({ option, index }))
     .filter(({ option }) => !option.disabled);
@@ -150,7 +151,9 @@ export function CustomDropdown({
   useEffect(() => {
     if (activeIndex < 0) return;
     listboxRef.current
-      ?.querySelector<HTMLElement>(`#${CSS.escape(`${listboxId}-${activeIndex}`)}`)
+      ?.querySelector<HTMLElement>(
+        `#${CSS.escape(`${listboxId}-${activeIndex}`)}`,
+      )
       ?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, listboxId]);
 
@@ -236,53 +239,54 @@ export function CustomDropdown({
     }
   }
 
-  const menu = isOpen && portalTarget
-    ? createPortal(
-        <motion.div
-          aria-label="Options"
-          className="fixed z-100 overflow-y-auto rounded-xl border border-border bg-white p-1.5 shadow-xl"
-          id={listboxId}
-          ref={listboxRef}
-          role="listbox"
-          style={{
-            ...menuStyle,
-            visibility: menuStyle ? "visible" : "hidden",
-          }}
-          initial={{ opacity: 0, scale: 0.98, y: 4 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.14, ease: "easeOut" }}
-        >
-          {options.map((option, index) => {
-            const selected = option.value === value;
-            const active = index === activeIndex;
-            return (
-              <motion.div
-                aria-disabled={option.disabled || undefined}
-                aria-selected={selected}
-                className={`flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                  selected
-                    ? "bg-sage-100 font-medium text-forest-800"
-                    : active
-                      ? "bg-canvas text-ink"
-                      : "text-ink hover:bg-canvas"
-                } disabled:cursor-not-allowed disabled:opacity-45`}
-                id={`${listboxId}-${index}`}
-                key={`${option.value}-${index}`}
-                onClick={() => choose(index)}
-                onMouseEnter={() => setActiveIndex(index)}
-                role="option"
-                tabIndex={-1}
-                whileTap={option.disabled ? undefined : { scale: 0.99 }}
-              >
-                <span>{option.label}</span>
-                {selected && <Check aria-hidden="true" className="size-4" />}
-              </motion.div>
-            );
-          })}
-        </motion.div>,
-        portalTarget,
-      )
-    : null;
+  const menu =
+    isOpen && portalTarget
+      ? createPortal(
+          <motion.div
+            aria-label="Options"
+            className="fixed z-100 overflow-y-auto rounded-xl border border-border bg-white p-1.5 shadow-xl"
+            id={listboxId}
+            ref={listboxRef}
+            role="listbox"
+            style={{
+              ...menuStyle,
+              visibility: menuStyle ? "visible" : "hidden",
+            }}
+            initial={{ opacity: 0, scale: 0.98, y: 4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.14, ease: "easeOut" }}
+          >
+            {options.map((option, index) => {
+              const selected = option.value === value;
+              const active = index === activeIndex;
+              return (
+                <motion.div
+                  aria-disabled={option.disabled || undefined}
+                  aria-selected={selected}
+                  className={`flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                    selected
+                      ? "bg-sage-100 font-medium text-forest-800"
+                      : active
+                        ? "bg-canvas text-ink"
+                        : "text-ink hover:bg-canvas"
+                  } disabled:cursor-not-allowed disabled:opacity-45`}
+                  id={`${listboxId}-${index}`}
+                  key={`${option.value}-${index}`}
+                  onClick={() => choose(index)}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  role="option"
+                  tabIndex={-1}
+                  whileTap={option.disabled ? undefined : { scale: 0.99 }}
+                >
+                  <span>{option.label}</span>
+                  {selected && <Check aria-hidden="true" className="size-4" />}
+                </motion.div>
+              );
+            })}
+          </motion.div>,
+          portalTarget,
+        )
+      : null;
 
   return (
     <div className="relative w-full min-w-0" ref={rootRef}>

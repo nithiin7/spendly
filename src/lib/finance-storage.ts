@@ -1,8 +1,5 @@
 import { getDemoFinanceData } from "./demo-data.ts";
-import {
-  defaultCategories,
-  defaultCategoryRules,
-} from "./categories.ts";
+import { defaultCategories, defaultCategoryRules } from "./categories.ts";
 import { isFinanceData } from "./finance-utils.ts";
 import type { FinanceData, FinancePreferences } from "@/types/finance";
 
@@ -16,7 +13,10 @@ function getBrowserStorage(): Storage {
   return window.localStorage;
 }
 
-function parseStoredData(stored: string): { data: FinanceData; changed: boolean } {
+function parseStoredData(stored: string): {
+  data: FinanceData;
+  changed: boolean;
+} {
   let parsed: unknown;
   try {
     parsed = JSON.parse(stored);

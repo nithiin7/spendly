@@ -30,8 +30,8 @@ const emptyFinanceData: FinanceData = {
 
 function getCategoryName(backup: FinanceBackup, categoryId: string): string {
   return (
-    backup.data.categories.find((category) => category.id === categoryId)?.name ??
-    "Unknown category"
+    backup.data.categories.find((category) => category.id === categoryId)
+      ?.name ?? "Unknown category"
   );
 }
 
@@ -96,9 +96,7 @@ export function FinanceBackupManager({
   const reviewRestore = () => {
     if (!backup) return;
     try {
-      setPlan(
-        planFinanceRestore(data ?? emptyFinanceData, backup.data, mode),
-      );
+      setPlan(planFinanceRestore(data ?? emptyFinanceData, backup.data, mode));
       setError(null);
     } catch (planningError) {
       setPlan(null);
@@ -257,7 +255,10 @@ export function FinanceBackupManager({
                             {transaction.type}
                           </span>
                         </span>
-                        <span className="shrink-0 font-medium text-ink" data-financial-value>
+                        <span
+                          className="shrink-0 font-medium text-ink"
+                          data-financial-value
+                        >
                           {formatRupees(
                             transaction.amountPaise,
                             backup.data.preferences?.defaultCurrency ?? "INR",
@@ -296,8 +297,8 @@ export function FinanceBackupManager({
                       </span>
                       <span className="mt-0.5 block text-xs leading-5 text-muted">
                         Keep current records and add backup records. Identical
-                        IDs are skipped; conflicting IDs stop the merge.
-                        Nothing currently saved is overwritten.
+                        IDs are skipped; conflicting IDs stop the merge. Nothing
+                        currently saved is overwritten.
                       </span>
                     </span>
                   </label>
@@ -318,8 +319,8 @@ export function FinanceBackupManager({
                       </span>
                       <span className="mt-0.5 block text-xs leading-5 text-muted">
                         Replace categories, rules, transactions, recurring
-                        schedules, occurrence history, and monthly budgets saved in this browser
-                        with the contents of this backup.
+                        schedules, occurrence history, and monthly budgets saved
+                        in this browser with the contents of this backup.
                       </span>
                     </span>
                   </label>
@@ -331,12 +332,11 @@ export function FinanceBackupManager({
                     {plan.added.categories} categories, {plan.added.rules}{" "}
                     rules, {plan.added.transactions} transactions,{" "}
                     {plan.added.recurringRules} recurring schedules, and{" "}
-                    {plan.added.recurringOccurrences} occurrences will be added.
-                    {" "}
+                    {plan.added.recurringOccurrences} occurrences will be added.{" "}
                     {plan.added.budgets} monthly budgets will be added.
                     {mode === "replace" &&
-                      " This will remove all existing categories, rules, transactions, recurring schedules, occurrence history, and monthly budgets."}
-                    {" "}Nothing changes until you confirm below.
+                      " This will remove all existing categories, rules, transactions, recurring schedules, occurrence history, and monthly budgets."}{" "}
+                    Nothing changes until you confirm below.
                   </p>
                 )}
               </>

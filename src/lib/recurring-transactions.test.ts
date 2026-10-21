@@ -33,9 +33,7 @@ const categories = [
   },
 ];
 
-function makeRule(
-  overrides: Partial<RecurringRule> = {},
-): RecurringRule {
+function makeRule(overrides: Partial<RecurringRule> = {}): RecurringRule {
   return {
     id: "rule-1",
     description: "Monthly rent",
@@ -170,7 +168,10 @@ test("confirming creates one normal transaction and a repeated confirmation is i
     (item) => item.scheduledDate === "2026-01-31",
   );
   assert.equal(completedOccurrence?.status, "confirmed");
-  assert.equal(confirmed.transactions[0].id, completedOccurrence?.transactionId);
+  assert.equal(
+    confirmed.transactions[0].id,
+    completedOccurrence?.transactionId,
+  );
   assert.equal(confirmed.transactions[0].amountPaise, 125000);
   assert.equal(retried, confirmed);
   assert.equal(retried.transactions.length, 1);
@@ -248,7 +249,11 @@ test("a missed occurrence is offered one at a time and is never assumed paid", (
   assert.equal(skipped.transactions.length, 0);
   assert.equal(pending.length, 1);
   assert.equal(pending[0].scheduledDate, "2020-02-29");
-  assert.equal(skipped.recurringOccurrences.filter((item) => item.status === "skipped").length, 1);
+  assert.equal(
+    skipped.recurringOccurrences.filter((item) => item.status === "skipped")
+      .length,
+    1,
+  );
 });
 
 test("end date includes its occurrence but prevents schedules beyond the boundary", () => {
@@ -276,7 +281,11 @@ test("end date includes its occurrence but prevents schedules beyond the boundar
 
 test("scheduled amounts stay out of financial totals until confirmed", () => {
   const data = makeData();
-  const actualBefore = getMonthlyFinancialSummary(data.transactions, categories, "2026-01");
+  const actualBefore = getMonthlyFinancialSummary(
+    data.transactions,
+    categories,
+    "2026-01",
+  );
   assert.equal(actualBefore.expensePaise, 0);
   assert.equal(actualBefore.transactionCount, 0);
 

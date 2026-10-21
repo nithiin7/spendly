@@ -4,7 +4,10 @@ import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { formatRupees } from "@/lib/finance-utils";
 import type { MonthlySpendingAnalysis } from "@/types/finance";
 
-function formatChange(amountPaise: number, previousAmountPaise: number): string {
+function formatChange(
+  amountPaise: number,
+  previousAmountPaise: number,
+): string {
   if (previousAmountPaise === 0) return "New this month";
   if (amountPaise === 0) return "No spending this month";
   const changePaise = amountPaise - previousAmountPaise;
@@ -172,19 +175,13 @@ export function SpendingAnalysis({
                           data-financial-value
                         >
                           Previous:{" "}
-                          {formatRupees(
-                            category.previousAmountPaise,
-                            currency,
-                          )}
+                          {formatRupees(category.previousAmountPaise, currency)}
                         </span>
                         <span
                           className={`inline-flex items-center gap-1 text-xs ${changeColor}`}
                           data-financial-value
                         >
-                          <ChangeIcon
-                            aria-hidden="true"
-                            className="size-3.5"
-                          />
+                          <ChangeIcon aria-hidden="true" className="size-3.5" />
                           {formatChange(
                             category.amountPaise,
                             category.previousAmountPaise,
@@ -228,10 +225,12 @@ export function SpendingAnalysis({
                       {transaction.description}
                     </p>
                     <p className="mt-0.5 text-xs text-muted">
-                      {new Date(`${transaction.date}T00:00:00`).toLocaleDateString(
-                        "en-IN",
-                        { day: "numeric", month: "short" },
-                      )}
+                      {new Date(
+                        `${transaction.date}T00:00:00`,
+                      ).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                      })}
                     </p>
                   </div>
                   <span

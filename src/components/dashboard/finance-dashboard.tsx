@@ -188,172 +188,42 @@ export function FinanceDashboard() {
 
   return (
     <PageEntrance>
-    <div className="space-y-7" id="overview">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-sage-200 bg-sage-100 px-2.5 py-1 text-[11px] font-semibold text-forest-800">
-            <span
-              aria-hidden="true"
-              className="size-1.5 rounded-full bg-positive"
-            />
-            {finance.storageMode === "cloud" ? "Private · cloud account" : "Private · saved on this device"}
+      <div className="space-y-7" id="overview">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-sage-200 bg-sage-100 px-2.5 py-1 text-[11px] font-semibold text-forest-800">
+              <span
+                aria-hidden="true"
+                className="size-1.5 rounded-full bg-positive"
+              />
+              {finance.storageMode === "cloud"
+                ? "Private · cloud account"
+                : "Private · saved on this device"}
+            </div>
+            <h2 className="text-2xl font-semibold tracking-[-0.045em] text-ink sm:text-[30px]">
+              Your money, in perspective
+            </h2>
+            <p className="mt-1.5 text-sm text-muted">
+              Your financial snapshot for {selectedMonthLabel}.
+            </p>
           </div>
-          <h2 className="text-2xl font-semibold tracking-[-0.045em] text-ink sm:text-[30px]">
-            Your money, in perspective
-          </h2>
-          <p className="mt-1.5 text-sm text-muted">
-            Your financial snapshot for {selectedMonthLabel}.
-          </p>
-        </div>
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <label className="sr-only" htmlFor="dashboard-month">
-            Select dashboard month
-          </label>
-          <CalendarPicker
-            className="form-input w-full sm:w-auto"
-            id="dashboard-month"
-            mode="month"
-            onChange={setSelectedMonth}
-            value={monthKey}
-          />
-          <button
-            className="button-secondary"
-            onClick={() => setQuickCreateType("income")}
-            type="button"
-          >
-            <Plus aria-hidden="true" className="size-4" />
-            Add income
-          </button>
-          <button
-            className="button-primary"
-            onClick={() => setQuickCreateType("expense")}
-            type="button"
-          >
-            <Plus aria-hidden="true" className="size-4" />
-            Add expense
-          </button>
-        </div>
-      </div>
-
-      {finance.error && (
-        <p
-          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-          role="alert"
-        >
-          {finance.error}
-        </p>
-      )}
-
-      <motion.section
-        aria-label="Monthly financial summary"
-        animate="visible"
-        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
-        initial="hidden"
-        variants={summaryCardsVariants}
-      >
-        <SummaryCard
-          icon={Wallet}
-          label="Remaining balance"
-          note="Income minus expenses"
-          tone={summary.balancePaise >= 0 ? "positive" : "default"}
-          value={formatMoney(summary.balancePaise)}
-        />
-        <SummaryCard
-          icon={ArrowDownToLine}
-          label="Total income"
-          note="Salary and other income"
-          value={formatMoney(summary.incomePaise)}
-        />
-        <SummaryCard
-          icon={ArrowUpFromLine}
-          label="Total expenses"
-          note="Across all expense categories"
-          value={formatMoney(summary.expensePaise)}
-        />
-        <SummaryCard
-          icon={PiggyBank}
-          label="Savings rate"
-          note={
-            summary.incomePaise > 0
-              ? "Net savings as a share of income"
-              : "Add income to calculate your rate"
-          }
-          tone={summary.balancePaise >= 0 ? "positive" : "default"}
-          value={savingsRate}
-        />
-      </motion.section>
-
-      <section
-        aria-label={`${selectedMonthLabel} budget`}
-        className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-white p-5 shadow-card sm:px-6"
-      >
-        <div>
-          <p className="text-sm font-medium text-ink" data-financial-value>
-            {budgetAnalytics.overall
-              ? `${formatMoney(budgetAnalytics.overall.spentPaise)} of ${formatMoney(budgetAnalytics.overall.budgetPaise)} spent against your budget`
-              : "Plan your monthly spending"}
-          </p>
-          <p className="mt-1 text-sm text-muted" data-financial-value>
-            {budgetAnalytics.overall
-              ? `${formatMoney(budgetAnalytics.overall.remainingPaise)} remaining · ${budgetAnalytics.overall.utilizationPercent.toLocaleString("en-IN", { maximumFractionDigits: 1 })}% used`
-              : "Review category limits and compare actual expenses"}
-          </p>
-        </div>
-        <Link className="button-secondary" href="/budgets">
-          {budgetAnalytics.overall ? "View budget" : "Manage budgets"}
-        </Link>
-      </section>
-
-      <section
-        aria-label="Monthly details and previous month comparison"
-        className="grid gap-3 sm:grid-cols-3"
-      >
-        <article className="rounded-xl border border-border bg-white px-4 py-3.5">
-          <p className="text-xs font-medium text-muted">Transactions</p>
-          <p className="mt-1 text-sm font-semibold text-ink">
-            {summary.transactionCount}
-          </p>
-        </article>
-        <article className="min-w-0 rounded-xl border border-border bg-white px-4 py-3.5">
-          <p className="text-xs font-medium text-muted">Largest expense</p>
-          <p className="mt-1 truncate text-sm font-semibold text-ink" data-financial-value title={largestExpenseLabel}>
-            {largestExpenseLabel}
-          </p>
-        </article>
-        <article className="rounded-xl border border-border bg-white px-4 py-3.5">
-          <p className="text-xs font-medium text-muted">Compared with last month</p>
-          <p className="mt-1 text-sm font-semibold text-ink" data-financial-value>
-            {expenseComparison}
-          </p>
-        </article>
-      </section>
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.85fr)]">
-        <SpendingChart
-          currentMonth={monthKey}
-          currency={currency}
-          hideBalances={finance.data.preferences?.hideBalances ?? false}
-          months={spendingMonths}
-        />
-        <CategoryBreakdown categories={summary.categoryTotals} currency={currency} />
-      </div>
-
-      {transactions.length === 0 && (
-        <section className="rounded-2xl border border-sage-200 bg-sage-100/70 px-5 py-6 sm:px-7">
-          <h2 className="text-base font-semibold text-forest-900">
-            Start with your first income or expense
-          </h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted">
-            Add your salary or another income source, then record expenses to
-            see your monthly balance and spending patterns. Your entries stay
-            in this browser.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <label className="sr-only" htmlFor="dashboard-month">
+              Select dashboard month
+            </label>
+            <CalendarPicker
+              className="form-input w-full sm:w-auto"
+              id="dashboard-month"
+              mode="month"
+              onChange={setSelectedMonth}
+              value={monthKey}
+            />
             <button
               className="button-secondary"
               onClick={() => setQuickCreateType("income")}
               type="button"
             >
+              <Plus aria-hidden="true" className="size-4" />
               Add income
             </button>
             <button
@@ -361,34 +231,178 @@ export function FinanceDashboard() {
               onClick={() => setQuickCreateType("expense")}
               type="button"
             >
+              <Plus aria-hidden="true" className="size-4" />
               Add expense
             </button>
           </div>
+        </div>
+
+        {finance.error && (
+          <p
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            role="alert"
+          >
+            {finance.error}
+          </p>
+        )}
+
+        <motion.section
+          aria-label="Monthly financial summary"
+          animate="visible"
+          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+          initial="hidden"
+          variants={summaryCardsVariants}
+        >
+          <SummaryCard
+            icon={Wallet}
+            label="Remaining balance"
+            note="Income minus expenses"
+            tone={summary.balancePaise >= 0 ? "positive" : "default"}
+            value={formatMoney(summary.balancePaise)}
+          />
+          <SummaryCard
+            icon={ArrowDownToLine}
+            label="Total income"
+            note="Salary and other income"
+            value={formatMoney(summary.incomePaise)}
+          />
+          <SummaryCard
+            icon={ArrowUpFromLine}
+            label="Total expenses"
+            note="Across all expense categories"
+            value={formatMoney(summary.expensePaise)}
+          />
+          <SummaryCard
+            icon={PiggyBank}
+            label="Savings rate"
+            note={
+              summary.incomePaise > 0
+                ? "Net savings as a share of income"
+                : "Add income to calculate your rate"
+            }
+            tone={summary.balancePaise >= 0 ? "positive" : "default"}
+            value={savingsRate}
+          />
+        </motion.section>
+
+        <section
+          aria-label={`${selectedMonthLabel} budget`}
+          className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-white p-5 shadow-card sm:px-6"
+        >
+          <div>
+            <p className="text-sm font-medium text-ink" data-financial-value>
+              {budgetAnalytics.overall
+                ? `${formatMoney(budgetAnalytics.overall.spentPaise)} of ${formatMoney(budgetAnalytics.overall.budgetPaise)} spent against your budget`
+                : "Plan your monthly spending"}
+            </p>
+            <p className="mt-1 text-sm text-muted" data-financial-value>
+              {budgetAnalytics.overall
+                ? `${formatMoney(budgetAnalytics.overall.remainingPaise)} remaining · ${budgetAnalytics.overall.utilizationPercent.toLocaleString("en-IN", { maximumFractionDigits: 1 })}% used`
+                : "Review category limits and compare actual expenses"}
+            </p>
+          </div>
+          <Link className="button-secondary" href="/budgets">
+            {budgetAnalytics.overall ? "View budget" : "Manage budgets"}
+          </Link>
         </section>
-      )}
 
-      <RecentTransactions
-        categories={categories}
-        currency={currency}
-        dateFormat={finance.data.preferences?.dateFormat ?? "DD/MM/YYYY"}
-        onAdd={() => setQuickCreateType("expense")}
-        transactions={transactions}
-      />
+        <section
+          aria-label="Monthly details and previous month comparison"
+          className="grid gap-3 sm:grid-cols-3"
+        >
+          <article className="rounded-xl border border-border bg-white px-4 py-3.5">
+            <p className="text-xs font-medium text-muted">Transactions</p>
+            <p className="mt-1 text-sm font-semibold text-ink">
+              {summary.transactionCount}
+            </p>
+          </article>
+          <article className="min-w-0 rounded-xl border border-border bg-white px-4 py-3.5">
+            <p className="text-xs font-medium text-muted">Largest expense</p>
+            <p
+              className="mt-1 truncate text-sm font-semibold text-ink"
+              data-financial-value
+              title={largestExpenseLabel}
+            >
+              {largestExpenseLabel}
+            </p>
+          </article>
+          <article className="rounded-xl border border-border bg-white px-4 py-3.5">
+            <p className="text-xs font-medium text-muted">
+              Compared with last month
+            </p>
+            <p
+              className="mt-1 text-sm font-semibold text-ink"
+              data-financial-value
+            >
+              {expenseComparison}
+            </p>
+          </article>
+        </section>
 
-      {quickCreateType && (
-        <TransactionForm
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.85fr)]">
+          <SpendingChart
+            currentMonth={monthKey}
+            currency={currency}
+            hideBalances={finance.data.preferences?.hideBalances ?? false}
+            months={spendingMonths}
+          />
+          <CategoryBreakdown
+            categories={summary.categoryTotals}
+            currency={currency}
+          />
+        </div>
+
+        {transactions.length === 0 && (
+          <section className="rounded-2xl border border-sage-200 bg-sage-100/70 px-5 py-6 sm:px-7">
+            <h2 className="text-base font-semibold text-forest-900">
+              Start with your first income or expense
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted">
+              Add your salary or another income source, then record expenses to
+              see your monthly balance and spending patterns. Your entries stay
+              in this browser.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                className="button-secondary"
+                onClick={() => setQuickCreateType("income")}
+                type="button"
+              >
+                Add income
+              </button>
+              <button
+                className="button-primary"
+                onClick={() => setQuickCreateType("expense")}
+                type="button"
+              >
+                Add expense
+              </button>
+            </div>
+          </section>
+        )}
+
+        <RecentTransactions
           categories={categories}
-          defaultCurrency={finance.data.preferences?.defaultCurrency ?? "INR"}
+          currency={currency}
           dateFormat={finance.data.preferences?.dateFormat ?? "DD/MM/YYYY"}
-          initialType={quickCreateType}
-          onAddCategory={finance.addCustomCategory}
-          onClose={() => setQuickCreateType(null)}
-          onRenameCategory={finance.editCategory}
-          onSave={finance.addTransaction}
-          rules={finance.data.rules}
+          onAdd={() => setQuickCreateType("expense")}
+          transactions={transactions}
         />
-      )}
-    </div>
+
+        {quickCreateType && (
+          <TransactionForm
+            categories={categories}
+            defaultCurrency={finance.data.preferences?.defaultCurrency ?? "INR"}
+            dateFormat={finance.data.preferences?.dateFormat ?? "DD/MM/YYYY"}
+            initialType={quickCreateType}
+            onAddCategory={finance.addCustomCategory}
+            onClose={() => setQuickCreateType(null)}
+            onRenameCategory={finance.editCategory}
+            onSave={finance.addTransaction}
+            rules={finance.data.rules}
+          />
+        )}
+      </div>
     </PageEntrance>
   );
 }

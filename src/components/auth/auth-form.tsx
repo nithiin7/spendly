@@ -46,7 +46,11 @@ function SpendlyBrand() {
 
 function GoogleMark() {
   return (
-    <svg aria-hidden="true" className="size-[18px] shrink-0" viewBox="0 0 48 48">
+    <svg
+      aria-hidden="true"
+      className="size-[18px] shrink-0"
+      viewBox="0 0 48 48"
+    >
       <path
         d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5.1h6.6c3.9-3.6 6.1-8.8 6.1-15Z"
         fill="#4285F4"
@@ -69,7 +73,11 @@ function GoogleMark() {
 
 function MicrosoftMark() {
   return (
-    <svg aria-hidden="true" className="size-[18px] shrink-0" viewBox="0 0 24 24">
+    <svg
+      aria-hidden="true"
+      className="size-[18px] shrink-0"
+      viewBox="0 0 24 24"
+    >
       <path d="M2 2h9v9H2z" fill="#F25022" />
       <path d="M13 2h9v9h-9z" fill="#7FBA00" />
       <path d="M2 13h9v9H2z" fill="#00A4EF" />
@@ -81,8 +89,14 @@ function MicrosoftMark() {
 const modeCopy: Record<AuthMode, { title: string; action: string }> = {
   "sign-in": { title: "Welcome back", action: "Sign in" },
   "sign-up": { title: "Create your account", action: "Create account" },
-  "forgot-password": { title: "Reset your password", action: "Send reset link" },
-  "update-password": { title: "Choose a new password", action: "Update password" },
+  "forgot-password": {
+    title: "Reset your password",
+    action: "Send reset link",
+  },
+  "update-password": {
+    title: "Choose a new password",
+    action: "Update password",
+  },
 };
 
 export function AuthForm({ mode }: { mode: AuthMode }) {
@@ -127,7 +141,9 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         });
         if (authError) throw authError;
         const next = searchParams.get("next");
-        router.replace(next?.startsWith("/") && !next.startsWith("//") ? next : "/");
+        router.replace(
+          next?.startsWith("/") && !next.startsWith("//") ? next : "/",
+        );
         router.refresh();
       } else if (mode === "sign-up") {
         const { data, error: authError } = await supabase.auth.signUp({
@@ -142,7 +158,9 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           router.replace("/");
           router.refresh();
         } else {
-          setMessage("Check your email for a verification link to finish creating your account.");
+          setMessage(
+            "Check your email for a verification link to finish creating your account.",
+          );
         }
       } else if (mode === "forgot-password") {
         const { error: authError } = await supabase.auth.resetPasswordForEmail(
@@ -152,11 +170,17 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           },
         );
         if (authError) throw authError;
-        setMessage("If an account exists for that address, a password reset link is on its way.");
+        setMessage(
+          "If an account exists for that address, a password reset link is on its way.",
+        );
       } else {
-        const { error: authError } = await supabase.auth.updateUser({ password });
+        const { error: authError } = await supabase.auth.updateUser({
+          password,
+        });
         if (authError) throw authError;
-        setMessage("Your password was updated. You can now continue to Spendly.");
+        setMessage(
+          "Your password was updated. You can now continue to Spendly.",
+        );
       }
     } catch (caught) {
       setError(
@@ -203,7 +227,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           {modeCopy[mode].title}
         </h1>
         <p className="mt-2 text-center text-sm leading-6 text-muted">
-          Your finance data is private to your account and synchronized securely.
+          Your finance data is private to your account and synchronized
+          securely.
         </p>
         {(mode === "sign-in" || mode === "sign-up") && (
           <div className="mt-6 space-y-2.5">
@@ -277,12 +302,18 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             </label>
           )}
           {message && (
-            <p className="rounded-xl bg-sage-50 px-3.5 py-3 text-sm text-forest-900" role="status">
+            <p
+              className="rounded-xl bg-sage-50 px-3.5 py-3 text-sm text-forest-900"
+              role="status"
+            >
               {message}
             </p>
           )}
           {error && (
-            <p className="rounded-xl bg-red-50 px-3.5 py-3 text-sm text-red-800" role="alert">
+            <p
+              className="rounded-xl bg-red-50 px-3.5 py-3 text-sm text-red-800"
+              role="alert"
+            >
               {error}
             </p>
           )}
@@ -297,26 +328,41 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         <div className="mt-6 flex flex-wrap justify-between gap-3 text-sm text-muted">
           {mode === "sign-in" && (
             <>
-              <Link className="text-forest-800 hover:underline" href="/auth/sign-up">
+              <Link
+                className="text-forest-800 hover:underline"
+                href="/auth/sign-up"
+              >
                 Create account
               </Link>
-              <Link className="text-forest-800 hover:underline" href="/auth/forgot-password">
+              <Link
+                className="text-forest-800 hover:underline"
+                href="/auth/forgot-password"
+              >
                 Forgot password?
               </Link>
             </>
           )}
           {mode === "sign-up" && (
-            <Link className="text-forest-800 hover:underline" href="/auth/sign-in">
+            <Link
+              className="text-forest-800 hover:underline"
+              href="/auth/sign-in"
+            >
               Already have an account? Sign in
             </Link>
           )}
           {mode === "forgot-password" && (
-            <Link className="text-forest-800 hover:underline" href="/auth/sign-in">
+            <Link
+              className="text-forest-800 hover:underline"
+              href="/auth/sign-in"
+            >
               Back to sign in
             </Link>
           )}
           {mode === "update-password" && (
-            <Link className="text-forest-800 hover:underline" href="/auth/sign-in">
+            <Link
+              className="text-forest-800 hover:underline"
+              href="/auth/sign-in"
+            >
               Back to sign in
             </Link>
           )}

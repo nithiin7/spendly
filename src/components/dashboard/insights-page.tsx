@@ -1,6 +1,11 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
+import {
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type KeyboardEvent,
+} from "react";
 import { CalendarPicker } from "@/components/ui/calendar-picker";
 import { FinancePageState } from "@/components/finance/finance-page-state";
 import { PageEntrance } from "@/components/ui/page-entrance";
@@ -66,7 +71,11 @@ export function InsightsPage() {
   const currency = finance.data.preferences?.defaultCurrency ?? "INR";
   const formatMoney = (amountPaise: number) =>
     formatRupees(amountPaise, currency);
-  const summary = getMonthlyFinancialSummary(transactions, categories, monthKey);
+  const summary = getMonthlyFinancialSummary(
+    transactions,
+    categories,
+    monthKey,
+  );
   const spendingAnalysis = getMonthlySpendingAnalysis(
     transactions,
     categories,
@@ -106,7 +115,11 @@ export function InsightsPage() {
     previousMonthKey,
   );
   const months = getSpendingMonths(transactions, 6, monthKey);
-  const cashFlowMonths = getCashFlowMonths(transactions, trendMonths, currentMonth);
+  const cashFlowMonths = getCashFlowMonths(
+    transactions,
+    trendMonths,
+    currentMonth,
+  );
   const savingsHealthMonths = getSavingsHealthMonths(
     transactions,
     finance.data.budgets,
@@ -147,162 +160,176 @@ export function InsightsPage() {
 
   return (
     <PageEntrance>
-    <div className="space-y-7">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="space-y-7">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-[-0.04em] text-ink">
+              Spending insights
+            </h2>
+            <p className="mt-1.5 text-sm text-muted">
+              Explore monthly patterns and compare your spending over time.
+            </p>
+          </div>
+          <label className="w-full sm:w-auto">
+            <span className="sr-only">Select insights month</span>
+            <CalendarPicker
+              className="form-input sm:w-auto"
+              mode="month"
+              onChange={setSelectedMonth}
+              value={monthKey}
+            />
+          </label>
+        </div>
+
+        <section
+          aria-label={`${monthLabel} compared with ${previousLabel}`}
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <article className="rounded-2xl border border-border bg-white p-5 shadow-card">
+            <p className="text-sm text-muted">{monthLabel} expenses</p>
+            <p
+              className="mt-2 text-2xl font-semibold tracking-tight text-ink"
+              data-financial-value
+            >
+              {formatMoney(summary.expensePaise)}
+            </p>
+          </article>
+          <article className="rounded-2xl border border-border bg-white p-5 shadow-card">
+            <p className="text-sm text-muted">{previousLabel} expenses</p>
+            <p
+              className="mt-2 text-2xl font-semibold tracking-tight text-ink"
+              data-financial-value
+            >
+              {formatMoney(previousMonth.expensePaise)}
+            </p>
+          </article>
+          <article className="rounded-2xl border border-border bg-white p-5 shadow-card">
+            <p className="text-sm text-muted">Change in spending</p>
+            <p
+              className="mt-2 text-2xl font-semibold tracking-tight text-ink"
+              data-financial-value
+            >
+              {formatMoney(Math.abs(summary.expenseChangePaise))}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              {summary.expenseChangePaise > 0
+                ? "More than last month"
+                : summary.expenseChangePaise < 0
+                  ? "Less than last month"
+                  : "No change from last month"}
+            </p>
+          </article>
+          <article className="rounded-2xl border border-border bg-white p-5 shadow-card">
+            <p className="text-sm text-muted">Change percentage</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-ink">
+              {summary.expenseChangePercent === null
+                ? "—"
+                : `${Math.abs(summary.expenseChangePercent).toLocaleString(
+                    "en-IN",
+                    {
+                      maximumFractionDigits: 1,
+                    },
+                  )}%`}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Compared with previous month
+            </p>
+          </article>
+        </section>
+
         <div>
-          <h2 className="text-2xl font-semibold tracking-[-0.04em] text-ink">
-            Spending insights
-          </h2>
-          <p className="mt-1.5 text-sm text-muted">
-            Explore monthly patterns and compare your spending over time.
-          </p>
-        </div>
-        <label className="w-full sm:w-auto">
-          <span className="sr-only">Select insights month</span>
-          <CalendarPicker
-            className="form-input sm:w-auto"
-            mode="month"
-            onChange={setSelectedMonth}
-            value={monthKey}
-          />
-        </label>
-      </div>
+          <div
+            aria-label="Insights sections"
+            className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-white p-1.5 shadow-card"
+            role="tablist"
+          >
+            {insightTabs.map((tab, index) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  aria-controls="insights-tabpanel"
+                  aria-selected={isActive}
+                  className={`min-h-10 shrink-0 rounded-lg px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 focus-visible:ring-offset-1 sm:px-4 ${
+                    isActive
+                      ? "bg-forest-800 text-white shadow-sm"
+                      : "text-muted hover:bg-canvas hover:text-ink"
+                  }`}
+                  id={`insights-tab-${tab.id}`}
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  onKeyDown={(event) => handleTabKeyDown(event, index)}
+                  ref={(element) => {
+                    tabRefs.current[index] = element;
+                  }}
+                  role="tab"
+                  tabIndex={isActive ? 0 : -1}
+                  type="button"
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
 
-      <section
-        aria-label={`${monthLabel} compared with ${previousLabel}`}
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
-      >
-        <article className="rounded-2xl border border-border bg-white p-5 shadow-card">
-          <p className="text-sm text-muted">{monthLabel} expenses</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-ink" data-financial-value>
-            {formatMoney(summary.expensePaise)}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-border bg-white p-5 shadow-card">
-          <p className="text-sm text-muted">{previousLabel} expenses</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-ink" data-financial-value>
-            {formatMoney(previousMonth.expensePaise)}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-border bg-white p-5 shadow-card">
-          <p className="text-sm text-muted">Change in spending</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-ink" data-financial-value>
-            {formatMoney(Math.abs(summary.expenseChangePaise))}
-          </p>
-          <p className="mt-1 text-xs text-muted">
-            {summary.expenseChangePaise > 0
-              ? "More than last month"
-              : summary.expenseChangePaise < 0
-                ? "Less than last month"
-                : "No change from last month"}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-border bg-white p-5 shadow-card">
-          <p className="text-sm text-muted">Change percentage</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-ink">
-            {summary.expenseChangePercent === null
-              ? "—"
-              : `${Math.abs(summary.expenseChangePercent).toLocaleString("en-IN", {
-                  maximumFractionDigits: 1,
-                })}%`}
-          </p>
-          <p className="mt-1 text-xs text-muted">Compared with previous month</p>
-        </article>
-      </section>
-
-      <div>
-        <div
-          aria-label="Insights sections"
-          className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-white p-1.5 shadow-card"
-          role="tablist"
-        >
-          {insightTabs.map((tab, index) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                aria-controls="insights-tabpanel"
-                aria-selected={isActive}
-                className={`min-h-10 shrink-0 rounded-lg px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 focus-visible:ring-offset-1 sm:px-4 ${
-                  isActive
-                    ? "bg-forest-800 text-white shadow-sm"
-                    : "text-muted hover:bg-canvas hover:text-ink"
-                }`}
-                id={`insights-tab-${tab.id}`}
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                onKeyDown={(event) => handleTabKeyDown(event, index)}
-                ref={(element) => {
-                  tabRefs.current[index] = element;
-                }}
-                role="tab"
-                tabIndex={isActive ? 0 : -1}
-                type="button"
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div
-          aria-labelledby={`insights-tab-${activeTab}`}
-          className="mt-5"
-          id="insights-tabpanel"
-          role="tabpanel"
-          tabIndex={0}
-        >
-          {activeTab === "cash-flow" && (
-            <div className="space-y-5">
-              <CashFlowTrends
-                currency={currency}
-                months={cashFlowMonths}
-                onChangePeriod={setTrendMonths}
-                onSelectMonth={setSelectedMonth}
-                selectedMonth={monthKey}
-              />
-              <SpendingChart
-                currentMonth={monthKey}
-                currency={currency}
-                months={months}
-              />
-            </div>
-          )}
-          {activeTab === "spending" && (
-            <div className="space-y-5">
-              <SpendingAnalysis
-                analysis={spendingAnalysis}
+          <div
+            aria-labelledby={`insights-tab-${activeTab}`}
+            className="mt-5"
+            id="insights-tabpanel"
+            role="tabpanel"
+            tabIndex={0}
+          >
+            {activeTab === "cash-flow" && (
+              <div className="space-y-5">
+                <CashFlowTrends
+                  currency={currency}
+                  months={cashFlowMonths}
+                  onChangePeriod={setTrendMonths}
+                  onSelectMonth={setSelectedMonth}
+                  selectedMonth={monthKey}
+                />
+                <SpendingChart
+                  currentMonth={monthKey}
+                  currency={currency}
+                  months={months}
+                />
+              </div>
+            )}
+            {activeTab === "spending" && (
+              <div className="space-y-5">
+                <SpendingAnalysis
+                  analysis={spendingAnalysis}
+                  currency={currency}
+                  monthLabel={monthLabel}
+                  previousMonthLabel={previousLabel}
+                  totalExpensePaise={summary.expensePaise}
+                />
+                <CategoryBreakdown
+                  categories={summary.categoryTotals}
+                  currency={currency}
+                />
+              </div>
+            )}
+            {activeTab === "budget" && (
+              <BudgetPlannerPerformance
+                analytics={budgetAnalytics}
+                budget={monthlyBudget}
                 currency={currency}
                 monthLabel={monthLabel}
-                previousMonthLabel={previousLabel}
-                totalExpensePaise={summary.expensePaise}
+                repeatedOverruns={repeatedBudgetOverruns}
               />
-              <CategoryBreakdown
-                categories={summary.categoryTotals}
-                currency={currency}
+            )}
+            {activeTab === "savings" && (
+              <SavingsHealth currency={currency} months={savingsHealthMonths} />
+            )}
+            {activeTab === "observations" && (
+              <ActionableObservations
+                monthLabel={monthLabel}
+                observations={observations}
               />
-            </div>
-          )}
-          {activeTab === "budget" && (
-            <BudgetPlannerPerformance
-              analytics={budgetAnalytics}
-              budget={monthlyBudget}
-              currency={currency}
-              monthLabel={monthLabel}
-              repeatedOverruns={repeatedBudgetOverruns}
-            />
-          )}
-          {activeTab === "savings" && (
-            <SavingsHealth currency={currency} months={savingsHealthMonths} />
-          )}
-          {activeTab === "observations" && (
-            <ActionableObservations
-              monthLabel={monthLabel}
-              observations={observations}
-            />
-          )}
+            )}
+          </div>
         </div>
       </div>
-    </div>
     </PageEntrance>
   );
 }

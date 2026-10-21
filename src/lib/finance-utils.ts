@@ -244,9 +244,8 @@ export function getSavingsHealthMonths(
       incomePaise: 0,
       expensePaise: 0,
     };
-    totals[
-      transaction.type === "income" ? "incomePaise" : "expensePaise"
-    ] += transaction.amountPaise;
+    totals[transaction.type === "income" ? "incomePaise" : "expensePaise"] +=
+      transaction.amountPaise;
     totalsByMonth.set(monthKey, totals);
   }
 
@@ -265,11 +264,12 @@ export function getSavingsHealthMonths(
       expensePaise: 0,
     };
     const budget = budgetsByMonth.get(monthKey);
-    const plannedExpenseSource = budget?.overallLimitPaise !== undefined
-      ? "overall-limit"
-      : budget && budget.allocations.length > 0
-        ? "category-allocations"
-        : null;
+    const plannedExpenseSource =
+      budget?.overallLimitPaise !== undefined
+        ? "overall-limit"
+        : budget && budget.allocations.length > 0
+          ? "category-allocations"
+          : null;
     const plannedExpensePaise =
       plannedExpenseSource === "overall-limit"
         ? budget!.overallLimitPaise!
@@ -368,7 +368,10 @@ export function getMonthlySpendingAnalysis(
     if (transaction.type !== "expense") continue;
 
     const transactionMonthKey = dateToMonthKey(transaction.date);
-    if (transactionMonthKey !== monthKey && transactionMonthKey !== previousMonthKey) {
+    if (
+      transactionMonthKey !== monthKey &&
+      transactionMonthKey !== previousMonthKey
+    ) {
       continue;
     }
 
@@ -390,7 +393,9 @@ export function getMonthlySpendingAnalysis(
     categoryTotals.set(transaction.categoryId, totals);
   }
 
-  const categoryNames = new Map(categories.map(({ id, name, color }) => [id, { name, color }]));
+  const categoryNames = new Map(
+    categories.map(({ id, name, color }) => [id, { name, color }]),
+  );
   const categoryChanges = [...categoryTotals.entries()]
     .map(([id, totals]) => {
       const category = categoryNames.get(id);
@@ -444,7 +449,9 @@ export function filterAndSortTransactions(
     .filter((transaction) => {
       return (
         (!normalizedQuery ||
-          transaction.description.toLocaleLowerCase().includes(normalizedQuery)) &&
+          transaction.description
+            .toLocaleLowerCase()
+            .includes(normalizedQuery)) &&
         (filters.month === "all" ||
           dateToMonthKey(transaction.date) === filters.month) &&
         (filters.type === "all" || transaction.type === filters.type) &&
@@ -454,14 +461,20 @@ export function filterAndSortTransactions(
     .sort((left, right) => {
       switch (filters.sort) {
         case "date-asc":
-          return left.date.localeCompare(right.date) || left.createdAt.localeCompare(right.createdAt);
+          return (
+            left.date.localeCompare(right.date) ||
+            left.createdAt.localeCompare(right.createdAt)
+          );
         case "amount-desc":
           return right.amountPaise - left.amountPaise;
         case "amount-asc":
           return left.amountPaise - right.amountPaise;
         case "date-desc":
         default:
-          return right.date.localeCompare(left.date) || right.createdAt.localeCompare(left.createdAt);
+          return (
+            right.date.localeCompare(left.date) ||
+            right.createdAt.localeCompare(left.createdAt)
+          );
       }
     });
 }
@@ -478,9 +491,7 @@ export function isFinanceData(value: unknown): value is FinanceData {
       preferences !== null &&
       typeof (preferences as Record<string, unknown>).defaultCurrency ===
         "string" &&
-      isCurrencyCode(
-        (preferences as Record<string, string>).defaultCurrency,
-      ) &&
+      isCurrencyCode((preferences as Record<string, string>).defaultCurrency) &&
       ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"].includes(
         (preferences as Record<string, string>).dateFormat,
       ) &&
@@ -494,7 +505,9 @@ export function isFinanceData(value: unknown): value is FinanceData {
   }
   const storedCategories: unknown[] = candidate.categories;
   const storedTransactions: unknown[] = candidate.transactions;
-  const storedRecurringRules: unknown[] = Array.isArray(candidate.recurringRules)
+  const storedRecurringRules: unknown[] = Array.isArray(
+    candidate.recurringRules,
+  )
     ? candidate.recurringRules
     : [];
   const storedRecurringOccurrences: unknown[] = Array.isArray(
@@ -531,8 +544,7 @@ export function isFinanceData(value: unknown): value is FinanceData {
             (category: unknown) =>
               typeof category === "object" &&
               category !== null &&
-              (category as Category).id ===
-                (rule as CategoryRule).categoryId,
+              (category as Category).id === (rule as CategoryRule).categoryId,
           ) &&
           Array.isArray((rule as CategoryRule).keywords) &&
           (rule as CategoryRule).keywords.every(
@@ -542,39 +554,37 @@ export function isFinanceData(value: unknown): value is FinanceData {
           Number.isInteger((rule as CategoryRule).priority) &&
           typeof (rule as CategoryRule).isDefault === "boolean",
       ));
-  const validTransactions = storedTransactions.every(
-    (transaction: unknown) => {
-      if (typeof transaction !== "object" || transaction === null) {
-        return false;
-      }
-      const item = transaction as Transaction;
-      return (
-        typeof item.id === "string" &&
-        (item.type === "income" || item.type === "expense") &&
-        typeof item.description === "string" &&
-        item.description.trim().length > 0 &&
-        Number.isSafeInteger(item.amountPaise) &&
-        item.amountPaise > 0 &&
-        typeof item.categoryId === "string" &&
-        (item.categorySource === undefined ||
-          item.categorySource === "manual" ||
-          item.categorySource === "suggested") &&
-        storedCategories.some(
-          (category: unknown) =>
-            typeof category === "object" &&
-            category !== null &&
-            (category as Category).id === item.categoryId &&
-            (category as Category).type === item.type,
-        ) &&
-        /^\d{4}-\d{2}-\d{2}$/.test(item.date) &&
-        typeof item.createdAt === "string" &&
-        typeof item.updatedAt === "string" &&
-        (item.paymentMethod === undefined ||
-          typeof item.paymentMethod === "string") &&
-        (item.notes === undefined || typeof item.notes === "string")
-      );
-    },
-  );
+  const validTransactions = storedTransactions.every((transaction: unknown) => {
+    if (typeof transaction !== "object" || transaction === null) {
+      return false;
+    }
+    const item = transaction as Transaction;
+    return (
+      typeof item.id === "string" &&
+      (item.type === "income" || item.type === "expense") &&
+      typeof item.description === "string" &&
+      item.description.trim().length > 0 &&
+      Number.isSafeInteger(item.amountPaise) &&
+      item.amountPaise > 0 &&
+      typeof item.categoryId === "string" &&
+      (item.categorySource === undefined ||
+        item.categorySource === "manual" ||
+        item.categorySource === "suggested") &&
+      storedCategories.some(
+        (category: unknown) =>
+          typeof category === "object" &&
+          category !== null &&
+          (category as Category).id === item.categoryId &&
+          (category as Category).type === item.type,
+      ) &&
+      /^\d{4}-\d{2}-\d{2}$/.test(item.date) &&
+      typeof item.createdAt === "string" &&
+      typeof item.updatedAt === "string" &&
+      (item.paymentMethod === undefined ||
+        typeof item.paymentMethod === "string") &&
+      (item.notes === undefined || typeof item.notes === "string")
+    );
+  });
 
   const validRecurringRules =
     candidate.recurringRules === undefined ||
@@ -614,8 +624,7 @@ export function isFinanceData(value: unknown): value is FinanceData {
       storedRecurringRules.map((rule) =>
         isRecurringRule(rule) ? rule.id : "",
       ),
-    )
-      .size === storedRecurringRules.length &&
+    ).size === storedRecurringRules.length &&
     new Set(
       storedRecurringOccurrences.map((occurrence) =>
         isRecurringOccurrence(occurrence) ? occurrence.id : "",
@@ -631,7 +640,10 @@ export function isFinanceData(value: unknown): value is FinanceData {
             typeof (occurrence as { transactionId?: unknown }).transactionId ===
               "string",
         )
-        .map((occurrence) => (occurrence as { transactionId: string }).transactionId),
+        .map(
+          (occurrence) =>
+            (occurrence as { transactionId: string }).transactionId,
+        ),
     ).size ===
     storedRecurringOccurrences.filter(
       (occurrence) =>
@@ -665,19 +677,19 @@ export function formatTransactionAmount(
 
 function transactionCsvHeaders(currency: string) {
   return [
-  "Date (YYYY-MM-DD)",
-  "Type",
-  "Description",
-  "Category",
-  `Amount (${currency})`,
-  "Original Amount",
-  "Original Currency",
-  "Exchange Rate Date",
-  "Payment Method",
-  "Notes",
-  "Category Source",
-  "Created At",
-  "Updated At",
+    "Date (YYYY-MM-DD)",
+    "Type",
+    "Description",
+    "Category",
+    `Amount (${currency})`,
+    "Original Amount",
+    "Original Currency",
+    "Exchange Rate Date",
+    "Payment Method",
+    "Notes",
+    "Category Source",
+    "Created At",
+    "Updated At",
   ];
 }
 

@@ -15,7 +15,9 @@ export async function GET(request: NextRequest) {
   }
 
   const code = request.nextUrl.searchParams.get("code");
-  const destination = localRedirectPath(request.nextUrl.searchParams.get("next"));
+  const destination = localRedirectPath(
+    request.nextUrl.searchParams.get("next"),
+  );
   if (!code) {
     return NextResponse.redirect(
       new URL("/auth/sign-in?error=verification", request.url),

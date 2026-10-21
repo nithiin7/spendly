@@ -160,7 +160,10 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       .select("updated_at")
       .maybeSingle();
     databaseError(error, "Updating category");
-    if (!data) throw new Error("This category changed in another session. Reload and retry.");
+    if (!data)
+      throw new Error(
+        "This category changed in another session. Reload and retry.",
+      );
     this.rememberVersion("categories", record.id, data.updated_at);
   }
 
@@ -203,7 +206,10 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       .select("updated_at")
       .maybeSingle();
     databaseError(error, "Updating categorization rule");
-    if (!data) throw new Error("This rule changed in another session. Reload and retry.");
+    if (!data)
+      throw new Error(
+        "This rule changed in another session. Reload and retry.",
+      );
     this.rememberVersion("category_rules", record.id, data.updated_at);
   }
 
@@ -257,7 +263,9 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       .maybeSingle();
     databaseError(error, "Updating transaction");
     if (!data) {
-      throw new Error("This transaction changed in another session. Reload and retry.");
+      throw new Error(
+        "This transaction changed in another session. Reload and retry.",
+      );
     }
     this.rememberVersion("transactions", record.id, data.updated_at);
   }
@@ -314,7 +322,10 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       .select("updated_at")
       .maybeSingle();
     databaseError(error, "Updating recurring rule");
-    if (!data) throw new Error("This recurring rule changed in another session. Reload and retry.");
+    if (!data)
+      throw new Error(
+        "This recurring rule changed in another session. Reload and retry.",
+      );
     this.rememberVersion("recurring_rules", record.id, data.updated_at);
   }
 
@@ -372,7 +383,9 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       .maybeSingle();
     databaseError(error, "Updating recurring occurrence");
     if (!data) {
-      throw new Error("This scheduled item changed in another session. Reload and retry.");
+      throw new Error(
+        "This scheduled item changed in another session. Reload and retry.",
+      );
     }
     this.rememberVersion("recurring_occurrences", record.id, data.updated_at);
   }
@@ -421,7 +434,10 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       .select("updated_at")
       .maybeSingle();
     databaseError(error, "Updating monthly budget");
-    if (!data) throw new Error("This monthly budget changed in another session. Reload and retry.");
+    if (!data)
+      throw new Error(
+        "This monthly budget changed in another session. Reload and retry.",
+      );
     this.rememberVersion("monthly_budgets", record.id, data.updated_at);
   }
 
@@ -456,7 +472,9 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       .maybeSingle();
     databaseError(error, `Deleting ${table.replaceAll("_", " ")}`);
     if (!data) {
-      throw new Error("This record changed in another session. Reload and retry.");
+      throw new Error(
+        "This record changed in another session. Reload and retry.",
+      );
     }
     this.versions.delete(this.versionKey(table, id));
   }
@@ -473,10 +491,13 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       JSON.stringify(previous.rules) !== JSON.stringify(next.rules) ||
       previous.transactions.length !== next.transactions.length ||
       previous.recurringRules.length !== next.recurringRules.length ||
-      previous.recurringOccurrences.length !== next.recurringOccurrences.length ||
+      previous.recurringOccurrences.length !==
+        next.recurringOccurrences.length ||
       previous.budgets.length !== next.budgets.length
     ) {
-      throw new Error("Finance data changed during currency conversion. Reload and retry.");
+      throw new Error(
+        "Finance data changed during currency conversion. Reload and retry.",
+      );
     }
     const previousTransactions = new Map(
       previous.transactions.map((record) => [record.id, record]),
@@ -487,7 +508,9 @@ export class SupabaseFinanceRepository implements FinanceRepository {
     const previousOccurrences = new Map(
       previous.recurringOccurrences.map((record) => [record.id, record]),
     );
-    const previousBudgets = new Map(previous.budgets.map((record) => [record.id, record]));
+    const previousBudgets = new Map(
+      previous.budgets.map((record) => [record.id, record]),
+    );
     const changes = {
       transactions: next.transactions.map((record) => {
         const old = previousTransactions.get(record.id);
@@ -532,14 +555,16 @@ export class SupabaseFinanceRepository implements FinanceRepository {
           id: record.id,
           expected_updated_at: old.updatedAt,
           overall_limit_paise: record.overallLimitPaise ?? null,
-          original_overall_limit_paise: record.originalOverallLimitPaise ?? null,
+          original_overall_limit_paise:
+            record.originalOverallLimitPaise ?? null,
           original_currency: record.originalCurrency ?? null,
           exchange_rate_date: record.exchangeRateDate ?? null,
         };
       }),
       budget_allocations: next.budgets.flatMap((budget) => {
         const oldBudget = previousBudgets.get(budget.id);
-        if (!oldBudget) throw new Error("Finance records changed. Reload and retry.");
+        if (!oldBudget)
+          throw new Error("Finance records changed. Reload and retry.");
         const oldByCategory = new Map(
           oldBudget.allocations.map((allocation) => [
             allocation.categoryId,
@@ -548,7 +573,8 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         );
         return budget.allocations.map((allocation) => {
           const old = oldByCategory.get(allocation.categoryId);
-          if (!old) throw new Error("Finance records changed. Reload and retry.");
+          if (!old)
+            throw new Error("Finance records changed. Reload and retry.");
           return {
             budget_id: budget.id,
             category_id: allocation.categoryId,
@@ -596,11 +622,27 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       this.client.from("categories").select("*").eq("user_id", this.userId),
       this.client.from("category_rules").select("*").eq("user_id", this.userId),
       this.client.from("transactions").select("*").eq("user_id", this.userId),
-      this.client.from("recurring_rules").select("*").eq("user_id", this.userId),
-      this.client.from("recurring_occurrences").select("*").eq("user_id", this.userId),
-      this.client.from("monthly_budgets").select("*").eq("user_id", this.userId),
-      this.client.from("budget_allocations").select("*").eq("user_id", this.userId),
-      this.client.from("user_preferences").select("*").eq("user_id", this.userId).maybeSingle(),
+      this.client
+        .from("recurring_rules")
+        .select("*")
+        .eq("user_id", this.userId),
+      this.client
+        .from("recurring_occurrences")
+        .select("*")
+        .eq("user_id", this.userId),
+      this.client
+        .from("monthly_budgets")
+        .select("*")
+        .eq("user_id", this.userId),
+      this.client
+        .from("budget_allocations")
+        .select("*")
+        .eq("user_id", this.userId),
+      this.client
+        .from("user_preferences")
+        .select("*")
+        .eq("user_id", this.userId)
+        .maybeSingle(),
     ]);
     databaseError(categoryRequest.error, "Loading cloud finance data");
     databaseError(ruleRequest.error, "Loading cloud finance data");
@@ -609,7 +651,10 @@ export class SupabaseFinanceRepository implements FinanceRepository {
     databaseError(occurrenceRequest.error, "Loading cloud finance data");
     databaseError(budgetRequest.error, "Loading cloud finance data");
     databaseError(allocationRequest.error, "Loading cloud finance data");
-    databaseError(preferencesRequest.error, "Loading cloud finance preferences");
+    databaseError(
+      preferencesRequest.error,
+      "Loading cloud finance preferences",
+    );
     return {
       categories: categoryRequest.data ?? [],
       rules: ruleRequest.data ?? [],
@@ -644,11 +689,23 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       allocations.push({
         categoryId: row.category_id,
         amountPaise: ensureSafeAmount(row.amount_paise, "budget allocation"),
-        ...(optionalSafeAmount(row.original_amount_paise, "budget allocation original") !== undefined
-          ? { originalAmountPaise: optionalSafeAmount(row.original_amount_paise, "budget allocation original") }
+        ...(optionalSafeAmount(
+          row.original_amount_paise,
+          "budget allocation original",
+        ) !== undefined
+          ? {
+              originalAmountPaise: optionalSafeAmount(
+                row.original_amount_paise,
+                "budget allocation original",
+              ),
+            }
           : {}),
-        ...(row.original_currency ? { originalCurrency: row.original_currency } : {}),
-        ...(row.exchange_rate_date ? { exchangeRateDate: row.exchange_rate_date } : {}),
+        ...(row.original_currency
+          ? { originalCurrency: row.original_currency }
+          : {}),
+        ...(row.exchange_rate_date
+          ? { exchangeRateDate: row.exchange_rate_date }
+          : {}),
       });
       allocationMap.set(row.budget_id, allocations);
     }
@@ -685,11 +742,23 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         type: row.type,
         description: row.description,
         amountPaise: ensureSafeAmount(row.amount_paise, "transaction"),
-        ...(optionalSafeAmount(row.original_amount_paise, "transaction original") !== undefined
-          ? { originalAmountPaise: optionalSafeAmount(row.original_amount_paise, "transaction original") }
+        ...(optionalSafeAmount(
+          row.original_amount_paise,
+          "transaction original",
+        ) !== undefined
+          ? {
+              originalAmountPaise: optionalSafeAmount(
+                row.original_amount_paise,
+                "transaction original",
+              ),
+            }
           : {}),
-        ...(row.original_currency ? { originalCurrency: row.original_currency } : {}),
-        ...(row.exchange_rate_date ? { exchangeRateDate: row.exchange_rate_date } : {}),
+        ...(row.original_currency
+          ? { originalCurrency: row.original_currency }
+          : {}),
+        ...(row.exchange_rate_date
+          ? { exchangeRateDate: row.exchange_rate_date }
+          : {}),
         categoryId: row.category_id,
         categorySource: row.category_source,
         date: row.date,
@@ -703,11 +772,23 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         description: row.description,
         type: row.type,
         amountPaise: ensureSafeAmount(row.amount_paise, "recurring rule"),
-        ...(optionalSafeAmount(row.original_amount_paise, "recurring rule original") !== undefined
-          ? { originalAmountPaise: optionalSafeAmount(row.original_amount_paise, "recurring rule original") }
+        ...(optionalSafeAmount(
+          row.original_amount_paise,
+          "recurring rule original",
+        ) !== undefined
+          ? {
+              originalAmountPaise: optionalSafeAmount(
+                row.original_amount_paise,
+                "recurring rule original",
+              ),
+            }
           : {}),
-        ...(row.original_currency ? { originalCurrency: row.original_currency } : {}),
-        ...(row.exchange_rate_date ? { exchangeRateDate: row.exchange_rate_date } : {}),
+        ...(row.original_currency
+          ? { originalCurrency: row.original_currency }
+          : {}),
+        ...(row.exchange_rate_date
+          ? { exchangeRateDate: row.exchange_rate_date }
+          : {}),
         categoryId: row.category_id,
         frequency: row.frequency,
         ...(row.interval !== null ? { interval: row.interval } : {}),
@@ -727,11 +808,23 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         description: row.description,
         type: row.type,
         amountPaise: ensureSafeAmount(row.amount_paise, "recurring occurrence"),
-        ...(optionalSafeAmount(row.original_amount_paise, "occurrence original") !== undefined
-          ? { originalAmountPaise: optionalSafeAmount(row.original_amount_paise, "occurrence original") }
+        ...(optionalSafeAmount(
+          row.original_amount_paise,
+          "occurrence original",
+        ) !== undefined
+          ? {
+              originalAmountPaise: optionalSafeAmount(
+                row.original_amount_paise,
+                "occurrence original",
+              ),
+            }
           : {}),
-        ...(row.original_currency ? { originalCurrency: row.original_currency } : {}),
-        ...(row.exchange_rate_date ? { exchangeRateDate: row.exchange_rate_date } : {}),
+        ...(row.original_currency
+          ? { originalCurrency: row.original_currency }
+          : {}),
+        ...(row.exchange_rate_date
+          ? { exchangeRateDate: row.exchange_rate_date }
+          : {}),
         categoryId: row.category_id,
         status: row.status,
         ...(row.transaction_id ? { transactionId: row.transaction_id } : {}),
@@ -743,13 +836,30 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         year: row.year,
         month: row.month,
         ...(row.overall_limit_paise !== null
-          ? { overallLimitPaise: ensureSafeAmount(row.overall_limit_paise, "monthly budget") }
+          ? {
+              overallLimitPaise: ensureSafeAmount(
+                row.overall_limit_paise,
+                "monthly budget",
+              ),
+            }
           : {}),
-        ...(optionalSafeAmount(row.original_overall_limit_paise, "monthly budget original") !== undefined
-          ? { originalOverallLimitPaise: optionalSafeAmount(row.original_overall_limit_paise, "monthly budget original") }
+        ...(optionalSafeAmount(
+          row.original_overall_limit_paise,
+          "monthly budget original",
+        ) !== undefined
+          ? {
+              originalOverallLimitPaise: optionalSafeAmount(
+                row.original_overall_limit_paise,
+                "monthly budget original",
+              ),
+            }
           : {}),
-        ...(row.original_currency ? { originalCurrency: row.original_currency } : {}),
-        ...(row.exchange_rate_date ? { exchangeRateDate: row.exchange_rate_date } : {}),
+        ...(row.original_currency
+          ? { originalCurrency: row.original_currency }
+          : {}),
+        ...(row.exchange_rate_date
+          ? { exchangeRateDate: row.exchange_rate_date }
+          : {}),
         allocations: allocationMap.get(row.id) ?? [],
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -763,10 +873,15 @@ export class SupabaseFinanceRepository implements FinanceRepository {
     return data;
   }
 
-  async persistChanges(previous: FinanceData, next: FinanceData): Promise<void> {
+  async persistChanges(
+    previous: FinanceData,
+    next: FinanceData,
+  ): Promise<void> {
     const sameIds = <T extends { id: string }>(before: T[], after: T[]) =>
       before.length === after.length &&
-      before.every((record) => after.some((candidate) => candidate.id === record.id));
+      before.every((record) =>
+        after.some((candidate) => candidate.id === record.id),
+      );
     const currencyOnlyChange =
       sameIds(previous.categories, next.categories) &&
       sameIds(previous.rules, next.rules) &&
@@ -788,39 +903,57 @@ export class SupabaseFinanceRepository implements FinanceRepository {
     if (
       currencyOnlyChange &&
       previous.preferences?.defaultCurrency !==
-      next.preferences?.defaultCurrency
+        next.preferences?.defaultCurrency
     ) {
       await this.persistCurrencyConversion(previous, next);
       return;
     }
     const categories = changedRecords(previous.categories, next.categories);
     const rules = changedRecords(previous.rules, next.rules);
-    const transactions = changedRecords(previous.transactions, next.transactions);
-    const recurringRules = changedRecords(previous.recurringRules, next.recurringRules);
+    const transactions = changedRecords(
+      previous.transactions,
+      next.transactions,
+    );
+    const recurringRules = changedRecords(
+      previous.recurringRules,
+      next.recurringRules,
+    );
     const occurrences = changedRecords(
       previous.recurringOccurrences,
       next.recurringOccurrences,
     );
     const budgets = changedRecords(previous.budgets, next.budgets);
 
-    await this.syncCollection(categories,
+    await this.syncCollection(
+      categories,
       (record) => this.insertCategory(record),
-      (oldRecord, record) => this.updateCategory(oldRecord, record));
-    await this.syncCollection(recurringRules,
+      (oldRecord, record) => this.updateCategory(oldRecord, record),
+    );
+    await this.syncCollection(
+      recurringRules,
       (record) => this.insertRecurringRule(record),
-      (oldRecord, record) => this.updateRecurringRule(oldRecord, record));
-    await this.syncCollection(transactions,
+      (oldRecord, record) => this.updateRecurringRule(oldRecord, record),
+    );
+    await this.syncCollection(
+      transactions,
       (record) => this.insertTransaction(record),
-      (oldRecord, record) => this.updateTransaction(oldRecord, record));
-    await this.syncCollection(budgets,
+      (oldRecord, record) => this.updateTransaction(oldRecord, record),
+    );
+    await this.syncCollection(
+      budgets,
       (record) => this.insertBudget(record),
-      (oldRecord, record) => this.updateBudget(oldRecord, record));
-    await this.syncCollection(rules,
+      (oldRecord, record) => this.updateBudget(oldRecord, record),
+    );
+    await this.syncCollection(
+      rules,
       (record) => this.insertRule(record),
-      (oldRecord, record) => this.updateRule(oldRecord, record));
-    await this.syncCollection(occurrences,
+      (oldRecord, record) => this.updateRule(oldRecord, record),
+    );
+    await this.syncCollection(
+      occurrences,
       (record) => this.insertOccurrence(record),
-      (oldRecord, record) => this.updateOccurrence(oldRecord, record));
+      (oldRecord, record) => this.updateOccurrence(oldRecord, record),
+    );
 
     const previousAllocations = previous.budgets.flatMap((budget) =>
       budget.allocations.map((allocation) => ({
@@ -864,7 +997,10 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       });
       databaseError(error, "Saving category budget");
     }
-    for (const { previous: oldRecord, next: record } of allocationDiff.updated) {
+    for (const {
+      previous: oldRecord,
+      next: record,
+    } of allocationDiff.updated) {
       const { data, error } = await this.client
         .from("budget_allocations")
         .update({
@@ -880,7 +1016,10 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         .select("budget_id")
         .maybeSingle();
       databaseError(error, "Updating category budget");
-      if (!data) throw new Error("This category budget changed in another session. Reload and retry.");
+      if (!data)
+        throw new Error(
+          "This category budget changed in another session. Reload and retry.",
+        );
     }
     for (const record of allocationDiff.deleted) {
       const { data, error } = await this.client
@@ -893,7 +1032,10 @@ export class SupabaseFinanceRepository implements FinanceRepository {
         .select("budget_id")
         .maybeSingle();
       databaseError(error, "Deleting category budget");
-      if (!data) throw new Error("This category budget changed in another session. Reload and retry.");
+      if (!data)
+        throw new Error(
+          "This category budget changed in another session. Reload and retry.",
+        );
     }
 
     for (const record of occurrences.deleted) {
@@ -915,7 +1057,10 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       await this.deleteOwnedRecord("categories", record.id);
     }
 
-    if (hasChanged(previous.preferences, next.preferences) && next.preferences) {
+    if (
+      hasChanged(previous.preferences, next.preferences) &&
+      next.preferences
+    ) {
       const { error } = await this.client.from("user_preferences").upsert({
         user_id: this.userId,
         default_currency: next.preferences.defaultCurrency,

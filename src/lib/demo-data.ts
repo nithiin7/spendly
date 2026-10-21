@@ -1,7 +1,4 @@
-import {
-  defaultCategories,
-  defaultCategoryRules,
-} from "./categories.ts";
+import { defaultCategories, defaultCategoryRules } from "./categories.ts";
 import type { FinanceData } from "@/types/finance";
 
 function makeDemoFinanceData(): FinanceData {

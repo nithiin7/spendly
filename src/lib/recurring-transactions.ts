@@ -9,14 +9,20 @@ import { createTransactionRecord } from "./transaction-factory.ts";
 export function isCalendarDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00.000Z`);
-  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+  return (
+    Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+  );
 }
 
 function dayInMonth(year: number, monthIndex: number): number {
   return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
 }
 
-function monthDate(year: number, monthIndex: number, desiredDay: number): string {
+function monthDate(
+  year: number,
+  monthIndex: number,
+  desiredDay: number,
+): string {
   const normalizedYear = year + Math.floor(monthIndex / 12);
   const normalizedMonth = ((monthIndex % 12) + 12) % 12;
   if (normalizedYear < 1000 || normalizedYear > 9999) {
@@ -48,7 +54,9 @@ export function getNextRecurringDate(
       return addDays(scheduledDate, 7);
     case "custom":
       if (!Number.isInteger(rule.interval) || (rule.interval ?? 0) < 1) {
-        throw new Error("A custom schedule needs an interval of at least one day.");
+        throw new Error(
+          "A custom schedule needs an interval of at least one day.",
+        );
       }
       return addDays(scheduledDate, rule.interval!);
     case "monthly":
@@ -173,7 +181,8 @@ export function validateRecurringRuleInput(
   input: RecurringRuleInput,
   categories: { id: string; type: string }[],
 ): string | null {
-  if (!input.description.trim()) return "Enter a description for this schedule.";
+  if (!input.description.trim())
+    return "Enter a description for this schedule.";
   if (!Number.isSafeInteger(input.amountPaise) || input.amountPaise <= 0) {
     return "Enter an amount greater than ₹0.";
   }
@@ -222,10 +231,14 @@ export function settleRecurringOccurrence(
   const occurrence = data.recurringOccurrences.find(
     (item) => item.id === occurrenceId,
   );
-  if (!occurrence) throw new Error("This recurring occurrence no longer exists.");
+  if (!occurrence)
+    throw new Error("This recurring occurrence no longer exists.");
   if (occurrence.status !== "pending") return data;
-  const rule = data.recurringRules.find((item) => item.id === occurrence.ruleId);
-  if (!rule) throw new Error("This occurrence no longer has a recurring schedule.");
+  const rule = data.recurringRules.find(
+    (item) => item.id === occurrence.ruleId,
+  );
+  if (!rule)
+    throw new Error("This occurrence no longer has a recurring schedule.");
 
   const transactionId = `recurring-occurrence::${occurrence.id}`;
   if (
@@ -249,7 +262,10 @@ export function settleRecurringOccurrence(
   const existingNextOccurrence = data.recurringOccurrences.find(
     (item) => item.id === nextOccurrenceId,
   );
-  if (existingNextOccurrence?.status !== undefined && existingNextOccurrence.status !== "pending") {
+  if (
+    existingNextOccurrence?.status !== undefined &&
+    existingNextOccurrence.status !== "pending"
+  ) {
     throw new Error(
       "A completed occurrence already exists for the next scheduled date.",
     );
@@ -319,9 +335,7 @@ export function updatePendingOccurrence(
   return {
     ...data,
     recurringOccurrences: data.recurringOccurrences.map((item) =>
-      item.id === occurrenceId
-        ? { ...item, ...input, updatedAt: now }
-        : item,
+      item.id === occurrenceId ? { ...item, ...input, updatedAt: now } : item,
     ),
   };
 }

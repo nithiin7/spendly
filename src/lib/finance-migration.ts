@@ -1,12 +1,5 @@
-import {
-  createFinanceBackup,
-  parseFinanceBackup,
-} from "./finance-backup.ts";
-import type {
-  Category,
-  FinanceData,
-  MonthlyBudget,
-} from "../types/finance.ts";
+import { createFinanceBackup, parseFinanceBackup } from "./finance-backup.ts";
+import type { Category, FinanceData, MonthlyBudget } from "../types/finance.ts";
 
 export type FinanceImportCounts = {
   categories: number;
@@ -37,13 +30,15 @@ function categoryNameKey(category: Category): string {
   return `${category.type}:${category.name.trim().toLocaleLowerCase()}`;
 }
 
-function sameRecordContent<T extends { id: string }>(left: T, right: T): boolean {
+function sameRecordContent<T extends { id: string }>(
+  left: T,
+  right: T,
+): boolean {
   const withoutTimestamps = (record: T) =>
     JSON.stringify(
       Object.fromEntries(
         Object.entries(record).filter(
-          ([key]) =>
-            key !== "id" && key !== "createdAt" && key !== "updatedAt",
+          ([key]) => key !== "id" && key !== "createdAt" && key !== "updatedAt",
         ),
       ),
     );
@@ -62,8 +57,7 @@ function remapConflictingId<T extends { id: string }>(
 
   const firstCandidate = idFactory(0);
   const previouslyImported = existing.find(
-    (item) =>
-      item.id === firstCandidate && sameRecordContent(item, record),
+    (item) => item.id === firstCandidate && sameRecordContent(item, record),
   );
   if (previouslyImported) {
     return { record: previouslyImported, changed: false, alreadyPresent: true };
@@ -82,28 +76,27 @@ function allocationCount(data: FinanceData): number {
   );
 }
 
-function countAdded(current: FinanceData, merged: FinanceData): FinanceImportCounts {
+function countAdded(
+  current: FinanceData,
+  merged: FinanceData,
+): FinanceImportCounts {
   return {
     categories: merged.categories.length - current.categories.length,
     rules: merged.rules.length - current.rules.length,
     transactions: merged.transactions.length - current.transactions.length,
-    recurringRules: merged.recurringRules.length - current.recurringRules.length,
+    recurringRules:
+      merged.recurringRules.length - current.recurringRules.length,
     recurringOccurrences:
       merged.recurringOccurrences.length - current.recurringOccurrences.length,
     budgets: merged.budgets.length - current.budgets.length,
-    budgetAllocations:
-      allocationCount(merged) - allocationCount(current),
+    budgetAllocations: allocationCount(merged) - allocationCount(current),
   };
 }
 
 export function reconcileLocalFinanceData(
   current: FinanceData,
   local: FinanceData,
-  idFactory: (
-    entityType: string,
-    recordId: string,
-    attempt: number,
-  ) => string,
+  idFactory: (entityType: string, recordId: string, attempt: number) => string,
 ): FinanceMigrationPlan {
   const validatedLocal = parseFinanceBackup(
     JSON.stringify(createFinanceBackup(local, "2000-01-01T00:00:00.000Z")),
@@ -134,10 +127,8 @@ export function reconcileLocalFinanceData(
       conflictsResolved += 1;
       continue;
     }
-    const remapped = remapConflictingId(
-      category,
-      categories,
-      (attempt) => idFactory("category", category.id, attempt),
+    const remapped = remapConflictingId(category, categories, (attempt) =>
+      idFactory("category", category.id, attempt),
     );
     categoryIds.set(category.id, remapped.record.id);
     if (!remapped.alreadyPresent) categories.push(remapped.record);
@@ -153,10 +144,8 @@ export function reconcileLocalFinanceData(
   for (const rule of incomingRules) {
     const existing = rules.find((item) => item.id === rule.id);
     if (existing && sameRecordContent(existing, rule)) continue;
-    const remapped = remapConflictingId(
-      rule,
-      rules,
-      (attempt) => idFactory("rule", rule.id, attempt),
+    const remapped = remapConflictingId(rule, rules, (attempt) =>
+      idFactory("rule", rule.id, attempt),
     );
     if (!remapped.alreadyPresent) rules.push(remapped.record);
     if (remapped.changed) conflictsResolved += 1;
@@ -174,10 +163,8 @@ export function reconcileLocalFinanceData(
       transactionIds.set(source.id, source.id);
       continue;
     }
-    const remapped = remapConflictingId(
-      transaction,
-      transactions,
-      (attempt) => idFactory("transaction", transaction.id, attempt),
+    const remapped = remapConflictingId(transaction, transactions, (attempt) =>
+      idFactory("transaction", transaction.id, attempt),
     );
     transactionIds.set(source.id, remapped.record.id);
     if (!remapped.alreadyPresent) transactions.push(remapped.record);
@@ -196,10 +183,8 @@ export function reconcileLocalFinanceData(
       recurringRuleIds.set(source.id, source.id);
       continue;
     }
-    const remapped = remapConflictingId(
-      rule,
-      recurringRules,
-      (attempt) => idFactory("recurring-rule", rule.id, attempt),
+    const remapped = remapConflictingId(rule, recurringRules, (attempt) =>
+      idFactory("recurring-rule", rule.id, attempt),
     );
     recurringRuleIds.set(source.id, remapped.record.id);
     if (!remapped.alreadyPresent) recurringRules.push(remapped.record);
@@ -213,7 +198,7 @@ export function reconcileLocalFinanceData(
       ruleId:
         source.ruleId === null
           ? null
-          : recurringRuleIds.get(source.ruleId) ?? source.ruleId,
+          : (recurringRuleIds.get(source.ruleId) ?? source.ruleId),
       categoryId: categoryIds.get(source.categoryId) ?? source.categoryId,
       ...(source.transactionId
         ? {
@@ -241,7 +226,8 @@ export function reconcileLocalFinanceData(
   for (const source of validatedLocal.budgets) {
     const allocations = source.allocations.map((allocation) => ({
       ...allocation,
-      categoryId: categoryIds.get(allocation.categoryId) ?? allocation.categoryId,
+      categoryId:
+        categoryIds.get(allocation.categoryId) ?? allocation.categoryId,
     }));
     const sameMonth = budgets.find(
       (budget) => budget.year === source.year && budget.month === source.month,
@@ -286,9 +272,7 @@ export function reconcileLocalFinanceData(
     JSON.stringify(
       createFinanceBackup(
         {
-          ...(current.preferences
-            ? { preferences: current.preferences }
-            : {}),
+          ...(current.preferences ? { preferences: current.preferences } : {}),
           categories,
           rules,
           transactions,

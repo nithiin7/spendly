@@ -46,7 +46,10 @@ function ProgressBar({
       className="h-2 overflow-hidden rounded-full bg-canvas"
       role="progressbar"
     >
-      <div className={`h-full rounded-full ${barColor}`} style={{ width: `${width}%` }} />
+      <div
+        className={`h-full rounded-full ${barColor}`}
+        style={{ width: `${width}%` }}
+      />
       <span className="sr-only" data-financial-value>
         {formatRupees(spentPaise, currency)} spent of{" "}
         {formatRupees(budgetPaise, currency)}
@@ -120,7 +123,8 @@ export function BudgetPlannerPerformance({
                 <span className="text-muted" data-financial-value>
                   {formatRupees(analytics.overall.spentPaise, currency)} actual
                   {" / "}
-                  {formatRupees(analytics.overall.budgetPaise, currency)} planned
+                  {formatRupees(analytics.overall.budgetPaise, currency)}{" "}
+                  planned
                 </span>
               </div>
               <div className="mt-3">
@@ -155,19 +159,30 @@ export function BudgetPlannerPerformance({
           <div className="grid gap-3 sm:grid-cols-3">
             <article className="rounded-xl border border-border p-4">
               <p className="text-xs text-muted">Category limits planned</p>
-              <p className="mt-1 text-lg font-semibold tabular-nums text-ink" data-financial-value>
+              <p
+                className="mt-1 text-lg font-semibold tabular-nums text-ink"
+                data-financial-value
+              >
                 {formatRupees(totalCategoryBudgetPaise, currency)}
               </p>
             </article>
             <article className="rounded-xl border border-border p-4">
-              <p className="text-xs text-muted">Actual in budgeted categories</p>
-              <p className="mt-1 text-lg font-semibold tabular-nums text-ink" data-financial-value>
+              <p className="text-xs text-muted">
+                Actual in budgeted categories
+              </p>
+              <p
+                className="mt-1 text-lg font-semibold tabular-nums text-ink"
+                data-financial-value
+              >
                 {formatRupees(totalAllocatedActualPaise, currency)}
               </p>
             </article>
             <article className="rounded-xl border border-border p-4">
               <p className="text-xs text-muted">Unbudgeted spending</p>
-              <p className="mt-1 text-lg font-semibold tabular-nums text-ink" data-financial-value>
+              <p
+                className="mt-1 text-lg font-semibold tabular-nums text-ink"
+                data-financial-value
+              >
                 {formatRupees(analytics.unbudgetedExpensePaise, currency)}
               </p>
             </article>
@@ -191,21 +206,23 @@ export function BudgetPlannerPerformance({
                       <span className="text-muted" data-financial-value>
                         {formatRupees(category.spentPaise, currency)} actual
                         {" / "}
-                        {formatRupees(category.budgetPaise ?? 0, currency)} planned
+                        {formatRupees(category.budgetPaise ?? 0, currency)}{" "}
+                        planned
                       </span>
                     </div>
-                    {category.status && category.utilizationPercent !== null && (
-                      <div className="mt-3">
-                        <ProgressBar
-                          budgetPaise={category.budgetPaise ?? 0}
-                          label={`${category.label} limit`}
-                          spentPaise={category.spentPaise}
-                          status={category.status}
-                          utilizationPercent={category.utilizationPercent}
-                          currency={currency}
-                        />
-                      </div>
-                    )}
+                    {category.status &&
+                      category.utilizationPercent !== null && (
+                        <div className="mt-3">
+                          <ProgressBar
+                            budgetPaise={category.budgetPaise ?? 0}
+                            label={`${category.label} limit`}
+                            spentPaise={category.spentPaise}
+                            status={category.status}
+                            utilizationPercent={category.utilizationPercent}
+                            currency={currency}
+                          />
+                        </div>
+                      )}
                     <p
                       className={`mt-2 text-xs ${
                         category.status === "over"
@@ -240,7 +257,8 @@ export function BudgetPlannerPerformance({
               />
               <span>
                 Unused allocations:{" "}
-                {unusedAllocations.map((category) => category.label).join(", ")}.
+                {unusedAllocations.map((category) => category.label).join(", ")}
+                .
               </span>
             </p>
           )}
@@ -252,8 +270,8 @@ export function BudgetPlannerPerformance({
           Repeated category overruns
         </h4>
         <p className="mt-1 text-xs text-muted">
-          Categories over their limit at least twice in the last six months
-          with a category budget.
+          Categories over their limit at least twice in the last six months with
+          a category budget.
         </p>
         {repeatedOverruns.length > 0 ? (
           <ul className="mt-3 grid gap-2 sm:grid-cols-2">

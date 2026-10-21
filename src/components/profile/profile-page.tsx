@@ -115,7 +115,9 @@ export function ProfilePage() {
 
     const normalizedUsername = username.trim();
     if (!/^[a-zA-Z0-9_.-]{3,24}$/.test(normalizedUsername)) {
-      setError("Use 3–24 characters: letters, numbers, periods, hyphens, or underscores.");
+      setError(
+        "Use 3–24 characters: letters, numbers, periods, hyphens, or underscores.",
+      );
       return;
     }
     if (!user) {
@@ -162,7 +164,9 @@ export function ProfilePage() {
         return;
       }
       if (!data.user) {
-        setError("The updated profile was not returned by the account service.");
+        setError(
+          "The updated profile was not returned by the account service.",
+        );
         return;
       }
 
@@ -197,7 +201,9 @@ export function ProfilePage() {
   if (!hasSupabaseConfig) {
     return (
       <section className="rounded-2xl border border-border bg-white p-6 shadow-card">
-        <h2 className="text-lg font-semibold text-ink">Cloud profile unavailable</h2>
+        <h2 className="text-lg font-semibold text-ink">
+          Cloud profile unavailable
+        </h2>
         <p className="mt-2 text-sm text-muted">
           Connect Spendly to Supabase to create and manage a cloud profile.
         </p>
@@ -208,7 +214,9 @@ export function ProfilePage() {
   if (!user) {
     return (
       <section className="rounded-2xl border border-border bg-white p-6 shadow-card">
-        <h2 className="text-lg font-semibold text-ink">Sign in to manage your profile</h2>
+        <h2 className="text-lg font-semibold text-ink">
+          Sign in to manage your profile
+        </h2>
         <p className="mt-2 text-sm text-muted">
           Your profile is available when you use a cloud account.
         </p>
@@ -225,7 +233,9 @@ export function ProfilePage() {
     <div className="max-w-2xl">
       <section className="rounded-2xl border border-border bg-white p-6 shadow-card sm:p-8">
         <div>
-          <h2 className="text-lg font-semibold tracking-[-0.02em] text-ink">Your profile</h2>
+          <h2 className="text-lg font-semibold tracking-[-0.02em] text-ink">
+            Your profile
+          </h2>
           <p className="mt-1 text-sm text-muted">
             Choose how your account appears in Spendly.
           </p>
@@ -258,15 +268,22 @@ export function ProfilePage() {
                 accept="image/jpeg,image/png,image/webp"
                 className="sr-only"
                 id="profile-photo"
-                onChange={(event) => selectAvatar(event.currentTarget.files?.[0])}
+                onChange={(event) =>
+                  selectAvatar(event.currentTarget.files?.[0])
+                }
                 type="file"
               />
-              <p className="mt-2 text-xs text-muted">JPG, PNG, or WebP. Maximum 5 MB.</p>
+              <p className="mt-2 text-xs text-muted">
+                JPG, PNG, or WebP. Maximum 5 MB.
+              </p>
             </div>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-ink" htmlFor="username">
+            <label
+              className="mb-2 block text-sm font-medium text-ink"
+              htmlFor="username"
+            >
               Username
             </label>
             <input
@@ -279,12 +296,16 @@ export function ProfilePage() {
               value={username}
             />
             <p className="mt-2 text-xs text-muted">
-              3–24 characters; letters, numbers, periods, hyphens, and underscores.
+              3–24 characters; letters, numbers, periods, hyphens, and
+              underscores.
             </p>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-ink" htmlFor="email">
+            <label
+              className="mb-2 block text-sm font-medium text-ink"
+              htmlFor="email"
+            >
               Email
             </label>
             <input
@@ -293,14 +314,28 @@ export function ProfilePage() {
               readOnly
               value={user.email ?? ""}
             />
-            <p className="mt-2 text-xs text-muted">Your email is managed by your sign-in provider.</p>
+            <p className="mt-2 text-xs text-muted">
+              Your email is managed by your sign-in provider.
+            </p>
           </div>
 
-          {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
-          {success && <p className="text-sm text-positive" role="status">{success}</p>}
+          {error && (
+            <p className="text-sm text-red-700" role="alert">
+              {error}
+            </p>
+          )}
+          {success && (
+            <p className="text-sm text-positive" role="status">
+              {success}
+            </p>
+          )}
 
           <div className="flex justify-end border-t border-border pt-5">
-            <button className="button-primary" disabled={isSaving} type="submit">
+            <button
+              className="button-primary"
+              disabled={isSaving}
+              type="submit"
+            >
               {isSaving ? "Saving…" : "Save profile"}
             </button>
           </div>

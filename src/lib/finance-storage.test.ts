@@ -43,7 +43,9 @@ test("recurring rules, history, and monthly budgets persist across storage reloa
       updatedAt: now,
     };
     data.recurringRules.push(rule);
-    data.recurringOccurrences.push(createRecurringOccurrence(rule, rule.nextDueDate, now));
+    data.recurringOccurrences.push(
+      createRecurringOccurrence(rule, rule.nextDueDate, now),
+    );
     const settled = settleRecurringOccurrence(
       data,
       data.recurringOccurrences[0].id,

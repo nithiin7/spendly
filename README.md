@@ -66,6 +66,7 @@ Open http://localhost:3000
 Common checks:
 
 ```bash
+npm run format:check
 npm run lint
 npm run typecheck
 npm test

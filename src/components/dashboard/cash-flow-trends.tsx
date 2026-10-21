@@ -109,15 +109,24 @@ export function CashFlowTrends({
         className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted"
       >
         <span className="inline-flex items-center gap-2">
-          <span aria-hidden="true" className="size-2 rounded-full bg-forest-700" />
+          <span
+            aria-hidden="true"
+            className="size-2 rounded-full bg-forest-700"
+          />
           Income
         </span>
         <span className="inline-flex items-center gap-2">
-          <span aria-hidden="true" className="size-2 rounded-full bg-rose-400" />
+          <span
+            aria-hidden="true"
+            className="size-2 rounded-full bg-rose-400"
+          />
           Expenses
         </span>
         <span className="inline-flex items-center gap-2">
-          <span aria-hidden="true" className="size-2 rounded-full bg-sage-300" />
+          <span
+            aria-hidden="true"
+            className="size-2 rounded-full bg-sage-300"
+          />
           Net cash flow
         </span>
       </div>
@@ -179,7 +188,10 @@ export function CashFlowTrends({
                   <span className="block" key={metric.label}>
                     <span className="flex items-center justify-between gap-2 text-xs">
                       <span className="text-muted">{metric.label}</span>
-                      <span className="font-medium tabular-nums text-ink" data-financial-value>
+                      <span
+                        className="font-medium tabular-nums text-ink"
+                        data-financial-value
+                      >
                         {formatRupees(metric.amountPaise, currency)}
                       </span>
                     </span>
